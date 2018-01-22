@@ -107,9 +107,17 @@
                             <wsdlOptions>
                                 <wsdlOption>
                                     <wsdl>${basedir}/target/wsdl/no/nav/virksomhet/tjenester/arbeidsgiver/v2/Binding.wsdl</wsdl>
+                                    <extraargs>
+                                        <extraarg>-client</extraarg>
+                                        <extraarg>-verbose</extraarg>
+                                    </extraargs>
                                 </wsdlOption>
                                 <wsdlOption>
-                                    <wsdl>${basedir}/target/wsdl/no/nav/virksomhet/tjenester/behandleArbeidsgiver/behandleArbeidsgiver.wsdl</wsdl>
+                                    <wsdl>${basedir}/target/wsdl/nav-tjeneste-behandleArbeidsgiver_BehandleArbeidsgiverWSEXP.wsdl</wsdl>
+                                    <extraargs>
+                                        <extraarg>-client</extraarg>
+                                        <extraarg>-verbose</extraarg>
+                                    </extraargs>
                                 </wsdlOption>
                             </wsdlOptions>
                         </configuration>
