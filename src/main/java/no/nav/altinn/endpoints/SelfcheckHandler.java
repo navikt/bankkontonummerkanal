@@ -1,4 +1,4 @@
-package no.nav.altinn;
+package no.nav.altinn.endpoints;
 
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;

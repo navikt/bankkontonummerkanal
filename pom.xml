@@ -43,6 +43,11 @@
             <artifactId>cxf-rt-rs-client</artifactId>
             <version>${cxf.version}</version>
         </dependency>
+        <dependency>
+            <groupId>no.nav.altinnkanal</groupId>
+            <artifactId>altinnkanal-schemas</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
