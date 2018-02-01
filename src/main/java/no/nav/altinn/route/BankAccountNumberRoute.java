@@ -29,7 +29,7 @@ public class BankAccountNumberRoute implements Runnable {
     private BehandleArbeidsgiver handleEmployer;
     private final BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
-    protected BankAccountNumberRoute(String partition, Properties kafkaConfig) {
+    public BankAccountNumberRoute(String partition, Properties kafkaConfig) {
         consumer = new KafkaConsumer<>(kafkaConfig);
         consumer.subscribe(Collections.singletonList(partition));
 
