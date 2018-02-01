@@ -1,9 +1,8 @@
-package no.nav.altinn;
+package no.nav.altinn.xmlextractor;
 
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.Sporingsdetalj;
-import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.OppdaterKontonummer;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;

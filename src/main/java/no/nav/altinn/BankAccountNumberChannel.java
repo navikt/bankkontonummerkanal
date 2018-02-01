@@ -3,6 +3,7 @@ package no.nav.altinn;
 import io.prometheus.client.exporter.MetricsServlet;
 import no.nav.altinn.config.ConfigurationFields;
 import no.nav.altinn.endpoints.SelfcheckHandler;
+import no.nav.altinn.route.BankAccountNumberRoute;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerCollection;

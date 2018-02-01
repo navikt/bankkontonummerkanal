@@ -1,4 +1,4 @@
-package no.nav.altinn;
+package no.nav.altinn.validators;
 
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.RelatertOrganisasjonSammendrag;
@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class OrganizationStructureValidator {
 
-    private boolean validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update) {
+    public static boolean validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update) {
 
         for (KontonummerOppdatering bankAccountUpdate : update.getUnderliggendeBedriftListe()) {
             if (bankAccountUpdate.getOrgNr() == null || bankAccountUpdate.getOrgNr().trim().isEmpty())
@@ -23,7 +23,7 @@ public class OrganizationStructureValidator {
 
     }
 
-    private Optional<RelatertOrganisasjonSammendrag> findDaughterOrganization(List<RelatertOrganisasjonSammendrag> daughterOrganizations, String orgNumber) {
+    private static Optional<RelatertOrganisasjonSammendrag> findDaughterOrganization(List<RelatertOrganisasjonSammendrag> daughterOrganizations, String orgNumber) {
         return daughterOrganizations.stream()
                 .filter(org -> org.getOrgNr().equals(orgNumber))
                 .findFirst();

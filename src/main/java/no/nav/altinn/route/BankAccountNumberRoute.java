@@ -1,10 +1,10 @@
-package no.nav.altinn;
+package no.nav.altinn.route;
 
+import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
-import no.nav.virksomhet.part.arbeidsgiver.v1.Kontonummer;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRequest;
+import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.binding.Arbeidsgiver;
-import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.binding.BehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpService;
@@ -19,15 +19,17 @@ import javax.xml.datatype.DatatypeFactory;
 import java.util.Collections;
 import java.util.Properties;
 
-public class BankAccountNumberRoute implements Runnable {
-    private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
+import static no.nav.altinn.validators.OrganizationStructureValidator.validateOrganizationStructure;
 
+public class BankAccountNumberRoute implements Runnable {
+
+    private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private Consumer<String, ExternalAttachment> consumer;
     private no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver employer;
     private BehandleArbeidsgiver handleEmployer;
     private final BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
-    public BankAccountNumberRoute(String partition, Properties kafkaConfig) {
+    protected BankAccountNumberRoute(String partition, Properties kafkaConfig) {
         consumer = new KafkaConsumer<>(kafkaConfig);
         consumer.subscribe(Collections.singletonList(partition));
 
@@ -47,20 +49,24 @@ public class BankAccountNumberRoute implements Runnable {
                 for (ConsumerRecord<String, ExternalAttachment> record : records) {
                     ExternalAttachment externalAttachment = record.value();
 
-                    OppdaterKontonummerRequest update = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(externalAttachment.getBatch());
+                    OppdaterKontonummerRequest updateBankAccountRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(externalAttachment.getBatch());
 
                     HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
-
-                    Kontonummer bankAccountNumber = employer.hentOrganisasjon(getOrganisationRequest).getOrganisasjon().getBankkontonr();
-
-
+                    HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
 
                     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
 
-                    update.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
-                    update.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar());
+                    updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
+                    updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar());
 
-                    handleEmployer.oppdaterKontonummer(update);
+                    if( validateOrganizationStructure(organisationResponse, updateBankAccountRequest))
+                    {
+                        handleEmployer.oppdaterKontonummer(updateBankAccountRequest);
+                    }
+                    else
+                    {
+                        //TODO send to back to topic
+                    }
 
                     // TODO: Extract data
                     // TODO: Validate and push against cxf
