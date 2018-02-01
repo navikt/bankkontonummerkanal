@@ -1,6 +1,8 @@
 package no.nav.altinn;
 
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
+import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
+import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.Sporingsdetalj;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.OppdaterKontonummer;
 
 import javax.xml.stream.XMLInputFactory;
@@ -11,28 +13,60 @@ import java.io.StringReader;
 
 public class BankAccountXmlExtractor {
     private final XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
+    private final static String NEW_ACCOUNT_NUMBER_FIELD = "nyttBankkontonummer";
+    private final static String ORGANISATION_NUMBER_FIELD = "organisasjonsnummer";
+    private final static String SISTER_ORGANISATION_FIELD = "underenhet";
+    private final static String PERSON_NUMBER_FIELD = "personidentifikator";
 
-    public KontonummerOppdatering extractFromXml(String xml) throws XMLStreamException {
+    public OppdaterKontonummerRequest buildSoapRequestFromAltinnPayload(String xml) throws XMLStreamException {
         KontonummerOppdatering bankAccountUpdate = new KontonummerOppdatering();
+        Sporingsdetalj trackingDetail = new Sporingsdetalj();
+
+        OppdaterKontonummerRequest updateRequest = new OppdaterKontonummerRequest();
+        updateRequest.setOverordnetEnhet(bankAccountUpdate);
+        updateRequest.setSporingsdetalj(trackingDetail);
+
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new StringReader(xml));
+
         while (reader.hasNext()) {
             int event = reader.next();
             if (event == XMLEvent.START_ELEMENT) {
                 switch (reader.getLocalName()) {
-                    case "nyttBankkontonummer":
+                    case NEW_ACCOUNT_NUMBER_FIELD:
                         bankAccountUpdate.setKontonummer(reader.getText());
                         break;
-                    case "organisasjonsnummer":
+                    case ORGANISATION_NUMBER_FIELD:
                         bankAccountUpdate.setOrgNr(reader.getText());
                         break;
-                }
+                    case PERSON_NUMBER_FIELD:
+                        trackingDetail.setFnr(reader.getText());
 
-                if (bankAccountUpdate.getKontonummer() != null && bankAccountUpdate.getOrgNr() != null)
-                    return bankAccountUpdate;
+                    case SISTER_ORGANISATION_FIELD:
+                        KontonummerOppdatering sisterBankAccountUpdate = new KontonummerOppdatering();
+                        while (reader.hasNext()) {
+                            event = reader.next();
+
+
+                            switch (reader.getLocalName()) {
+                                case NEW_ACCOUNT_NUMBER_FIELD:
+                                    sisterBankAccountUpdate.setKontonummer(reader.getText());
+                                    break;
+                                case ORGANISATION_NUMBER_FIELD:
+                                    sisterBankAccountUpdate.setOrgNr(reader.getText());
+                                    break;
+                            }
+
+                            if (event == XMLEvent.END_ELEMENT && reader.getLocalName().equals("underenhet"))
+                                break;
+                        }
+                        updateRequest.getUnderliggendeBedriftListe().add(sisterBankAccountUpdate);
+
+                        break;
+                }
             }
         }
 
-        throw new RuntimeException("Unable to find org number or bank account number in payload");
+        return updateRequest;
     }
 
     public static class BankAccountUpdate {

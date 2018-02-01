@@ -15,9 +15,18 @@
         <prometheus.version>0.1.0</prometheus.version>
         <kafka.version>1.0.0</kafka.version>
         <cxf.version>3.2.1</cxf.version>
+        <logback.version>1.2.3</logback.version>
+        <slf4j.version>1.7.25</slf4j.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>no.nav.altinnkanal</groupId>
+            <artifactId>altinnkanal-schemas</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Web server -->
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
@@ -28,25 +37,38 @@
             <artifactId>jetty-servlet</artifactId>
             <version>${jetty.version}</version>
         </dependency>
+
+        <!-- Metrics -->
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_servlet</artifactId>
             <version>${prometheus.version}</version>
         </dependency>
+
+        <!-- Kafka -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.12</artifactId>
             <version>${kafka.version}</version>
         </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- Consuming WS -->
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-rs-client</artifactId>
             <version>${cxf.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>no.nav.altinnkanal</groupId>
-            <artifactId>altinnkanal-schemas</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

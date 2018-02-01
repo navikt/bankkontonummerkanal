@@ -12,11 +12,16 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.xml.datatype.DatatypeFactory;
 import java.util.Collections;
 import java.util.Properties;
 
 public class BankAccountNumberRoute implements Runnable {
+    private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
+
     private Consumer<String, ExternalAttachment> consumer;
     private no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver employer;
     private BehandleArbeidsgiver handleEmployer;
@@ -42,21 +47,20 @@ public class BankAccountNumberRoute implements Runnable {
                 for (ConsumerRecord<String, ExternalAttachment> record : records) {
                     ExternalAttachment externalAttachment = record.value();
 
-                    KontonummerOppdatering update = bankAccountXmlExtractor.extractFromXml(externalAttachment.getBatch());
+                    OppdaterKontonummerRequest update = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(externalAttachment.getBatch());
 
                     HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
-                    getOrganisationRequest.setOrgNr(update.getOrgNr());
-                    getOrganisationRequest.setHentRelaterteOrganisasjoner(false);
 
                     Kontonummer bankAccountNumber = employer.hentOrganisasjon(getOrganisationRequest).getOrganisasjon().getBankkontonr();
-                    if (update.getKontonummer().equals(bankAccountNumber.getKontonummer())) {
-                        continue;
-                    }
 
-                    OppdaterKontonummerRequest updateAccountNumberRequest = new OppdaterKontonummerRequest();
-                    updateAccountNumberRequest.setOverordnetEnhet(update);
 
-                    handleEmployer.oppdaterKontonummer(updateAccountNumberRequest);
+
+                    DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
+
+                    update.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
+                    update.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar());
+
+                    handleEmployer.oppdaterKontonummer(update);
 
                     // TODO: Extract data
                     // TODO: Validate and push against cxf
