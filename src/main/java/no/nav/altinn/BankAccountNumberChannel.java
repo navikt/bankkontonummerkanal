@@ -48,7 +48,7 @@ public class BankAccountNumberChannel {
 
         String bankAccountChangeTopic = applicationProperties.getProperty(ConfigurationFields.BANKACCOUNT_NUMBER_CHANGED_TOPIC);
 
-        BankAccountNumberRoute route = new BankAccountNumberRoute("", kafkaProperties);
+        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, kafkaProperties);
         route.run();
     }
 }
