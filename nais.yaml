@@ -33,16 +33,3 @@ fasitResources:
   used:
   - alias: ldap
     resourceType: ldap
-  - alias: altinnkanalWS
-    resourceType: credential
-    propertyMap:
-      username: SOAP_USERNAME
-      password: SOAP_PASSWORD
-  exposed:
-  - alias: altinnkanal-2-ws-endpoint
-    resourceType: Webserviceendpoint
-    path: /webservices/OnlineBatchReceiverSoap
-    securityToken: none
-#  exposed:
-#  - alias: altinnkanal-2-admin-panel
-#    resourceType: Baseurl

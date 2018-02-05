@@ -20,17 +20,6 @@ Nonetheless, notes on the process are available in the following sections.
 #### Environment variables
 The environment variables do not have to be set for running tests, however they must be set before running the application locally:
 
-```SPRING_PROFILES_ACTIVE=local```
-
-And,
-
-```LDAP_URL, LDAP_USER_BASEDN, LDAP_USERNAME and LDAP_PASSWORD```
-
-must also be set. 
-
-Reference Fasit for the LDAP values associated to the environment you're running in. While developing locally, we've usually used *.test.local 
-(see https://fasit.adeo.no/resources/20027).
-
 #### Build and run
 
 Make sure to run to generate required code:
