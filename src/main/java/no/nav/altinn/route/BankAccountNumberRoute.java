@@ -73,6 +73,8 @@ public class BankAccountNumberRoute implements Runnable {
                 }
                 consumer.commitSync();
             } catch (Exception e) {
+               // e.printStackTrace();
+                log.error("this is the exception: ",e);
                 // TODO: Log this
             }
         }
