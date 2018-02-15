@@ -2,6 +2,7 @@ package no.nav.altinn;
 
 import io.prometheus.client.exporter.MetricsServlet;
 import no.nav.altinn.config.ConfigurationFields;
+import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.endpoints.SelfcheckHandler;
 import no.nav.altinn.route.BankAccountNumberRoute;
 import org.eclipse.jetty.server.Handler;
@@ -48,7 +49,7 @@ public class BankAccountNumberChannel {
 
         String bankAccountChangeTopic = applicationProperties.getProperty(ConfigurationFields.BANKACCOUNT_NUMBER_CHANGED_TOPIC);
 
-        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, kafkaProperties);
+        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, kafkaProperties, new EnvironmentConfig());
         route.run();
     }
 }

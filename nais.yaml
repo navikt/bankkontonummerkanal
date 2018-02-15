@@ -31,5 +31,9 @@ resources:
     memory: 256Mi
 fasitResources:
   used:
-  - alias: ldap
-    resourceType: ldap
+  - alias: aareg-hent-organisasjon
+    resourceType: webserviceendpoint
+  - alias: aareg-oppdater-kontonummer
+    resourceType: webserviceendpoint
+  - alias: AARegPolicyUser
+    resourceType: credential

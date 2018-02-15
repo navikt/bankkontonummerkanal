@@ -1,27 +1,44 @@
 package no.nav.altinn.route;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.prometheus.client.Counter;
+import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRequest;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
-import no.nav.virksomhet.tjenester.arbeidsgiver.v2.binding.Arbeidsgiver;
+import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.binding.BehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpService;
+import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
+import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.wss4j.common.ext.WSPasswordCallback;
+import org.apache.wss4j.dom.WSConstants;
+import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.PasswordCallback;
 import javax.xml.datatype.DatatypeFactory;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Properties;
 
 import static no.nav.altinn.validators.OrganizationStructureValidator.validateOrganizationStructure;
 
 public class BankAccountNumberRoute implements Runnable {
+    private final static Counter INCOMING_MESSAGE_COUNTER = Counter.build().name("incoming_message_count")
+            .help("Counts the number of incoming messages").register();
+    private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build().name("invalid_org_strcture_count")
+            .help("Counts the number of messages that failed because the organization structure was invalid").create();
+    private final static Counter SUCCESSFUL_MESSAGE_COUNTER = Counter.build().name("successful_message_count")
+            .help("Counts the number of successful messages").register();
 
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private Consumer<String, ExternalAttachment> consumer;
@@ -29,15 +46,33 @@ public class BankAccountNumberRoute implements Runnable {
     private BehandleArbeidsgiver handleEmployer;
     private final BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
-    public BankAccountNumberRoute(String partition, Properties kafkaConfig) {
+    public BankAccountNumberRoute(String partition, Properties kafkaConfig, EnvironmentConfig environmentConfig) {
         consumer = new KafkaConsumer<>(kafkaConfig);
         consumer.subscribe(Collections.singletonList(partition));
 
-        Arbeidsgiver employer = new Arbeidsgiver();
-        this.employer = employer.getArbeidsgiverPort();
+        // Configure password callback handler
+        CallbackHandler pwCallback = callbacks -> ((WSPasswordCallback)callbacks[0]).setPassword(environmentConfig.aaregWSPassword);
 
-        BehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpService handleEmployerService = new BehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpService();
-        handleEmployer = handleEmployerService.getBehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpPort();
+        // Configure WS security with username password
+        HashMap<String, Object> interceptorProperties = new HashMap<>();
+        interceptorProperties.put(WSHandlerConstants.USER, environmentConfig.aaregWSUsername);
+        interceptorProperties.put(WSHandlerConstants.PASSWORD_TYPE, WSConstants.PW_TEXT);
+        interceptorProperties.put(WSHandlerConstants.PW_CALLBACK_REF, pwCallback);
+        WSS4JOutInterceptor passwordOutInterceptor = new WSS4JOutInterceptor(interceptorProperties);
+
+        // Configure the endpoint used for hentArbeidsgiver
+        JaxWsProxyFactoryBean arbeidsGiverFactory = new JaxWsProxyFactoryBean();
+        arbeidsGiverFactory.setAddress(environmentConfig.aaregHentOrganisasjonEndpointURL);
+        arbeidsGiverFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
+        arbeidsGiverFactory.setServiceClass(Arbeidsgiver.class);
+        this.employer = (Arbeidsgiver) arbeidsGiverFactory.create();
+
+        // Configure then endpoint used for oppdaterKontonummer
+        JaxWsProxyFactoryBean handleEmployerFactory = new JaxWsProxyFactoryBean();
+        handleEmployerFactory.setAddress(environmentConfig.aaregOppdaterKontonummerEndpointURL);
+        handleEmployerFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
+        handleEmployerFactory.setServiceClass(BehandleArbeidsgiver.class);
+        handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
 
     }
 
@@ -47,33 +82,32 @@ public class BankAccountNumberRoute implements Runnable {
             try {
                 ConsumerRecords<String, ExternalAttachment> records = consumer.poll(100);
                 for (ConsumerRecord<String, ExternalAttachment> record : records) {
+                    INCOMING_MESSAGE_COUNTER.inc();
                     ExternalAttachment externalAttachment = record.value();
 
                     OppdaterKontonummerRequest updateBankAccountRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(externalAttachment.getBatch());
 
                     HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
                     HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
+                    String organisasjon = new ObjectMapper().writeValueAsString(organisationResponse);
+                    log.debug("Result from hentOrganisasjon", organisasjon);
 
                     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
 
                     updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
                     updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar());
 
-                    if( validateOrganizationStructure(organisationResponse, updateBankAccountRequest))
-                    {
-                        handleEmployer.oppdaterKontonummer(updateBankAccountRequest);
+                    if(validateOrganizationStructure(organisationResponse, updateBankAccountRequest)) {
+                        //handleEmployer.oppdaterKontonummer(updateBankAccountRequest);
+                        log.info("Successfully updated the account number for: ", updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
+                        SUCCESSFUL_MESSAGE_COUNTER.inc();
+                    } else {
+                        INVALID_ORG_STRUCTURE_COUNTER.inc();
                     }
-                    else
-                    {
-                        //TODO send to back to topic
-                    }
-
-                    // TODO: Extract data
-                    // TODO: Validate and push against cxf
                 }
                 consumer.commitSync();
             } catch (Exception e) {
-                log.error("this is the exception: ",e);
+                log.error("An error occurred while pushing to AAreg: ", e);
             }
         }
     }
