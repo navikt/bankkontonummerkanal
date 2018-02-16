@@ -1,6 +1,5 @@
 package no.nav.altinn.route;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.prometheus.client.Counter;
 import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
@@ -10,7 +9,8 @@ import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRes
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
-import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.binding.BehandleArbeidsgiverWSEXPBehandleArbeidsgiverHttpService;
+import org.apache.cxf.interceptor.LoggingInInterceptor;
+import org.apache.cxf.interceptor.LoggingOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -24,11 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.PasswordCallback;
 import javax.xml.datatype.DatatypeFactory;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Properties;
+import java.util.*;
 
 import static no.nav.altinn.validators.OrganizationStructureValidator.validateOrganizationStructure;
 
@@ -56,6 +53,7 @@ public class BankAccountNumberRoute implements Runnable {
         // Configure WS security with username password
         HashMap<String, Object> interceptorProperties = new HashMap<>();
         interceptorProperties.put(WSHandlerConstants.USER, environmentConfig.aaregWSUsername);
+        interceptorProperties.put(WSHandlerConstants.ACTION, WSHandlerConstants.USERNAME_TOKEN);
         interceptorProperties.put(WSHandlerConstants.PASSWORD_TYPE, WSConstants.PW_TEXT);
         interceptorProperties.put(WSHandlerConstants.PW_CALLBACK_REF, pwCallback);
         WSS4JOutInterceptor passwordOutInterceptor = new WSS4JOutInterceptor(interceptorProperties);
@@ -63,14 +61,22 @@ public class BankAccountNumberRoute implements Runnable {
         // Configure the endpoint used for hentArbeidsgiver
         JaxWsProxyFactoryBean arbeidsGiverFactory = new JaxWsProxyFactoryBean();
         arbeidsGiverFactory.setAddress(environmentConfig.aaregHentOrganisasjonEndpointURL);
-        arbeidsGiverFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
+        arbeidsGiverFactory.setOutInterceptors(Arrays.asList(
+                new LoggingOutInterceptor(),
+                passwordOutInterceptor
+        ));
+        arbeidsGiverFactory.setInInterceptors(Collections.singletonList(new LoggingInInterceptor()));
         arbeidsGiverFactory.setServiceClass(Arbeidsgiver.class);
         this.employer = (Arbeidsgiver) arbeidsGiverFactory.create();
 
         // Configure then endpoint used for oppdaterKontonummer
         JaxWsProxyFactoryBean handleEmployerFactory = new JaxWsProxyFactoryBean();
         handleEmployerFactory.setAddress(environmentConfig.aaregOppdaterKontonummerEndpointURL);
-        handleEmployerFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
+        handleEmployerFactory.setOutInterceptors(Arrays.asList(
+                new LoggingOutInterceptor(),
+                passwordOutInterceptor
+        ));
+        handleEmployerFactory.setInInterceptors(Collections.singletonList(new LoggingInInterceptor()));
         handleEmployerFactory.setServiceClass(BehandleArbeidsgiver.class);
         handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
 
@@ -88,20 +94,22 @@ public class BankAccountNumberRoute implements Runnable {
                     OppdaterKontonummerRequest updateBankAccountRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(externalAttachment.getBatch());
 
                     HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
+                    getOrganisationRequest.setOrgNr(updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
+                    getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
+
                     HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
-                    String organisasjon = new ObjectMapper().writeValueAsString(organisationResponse);
-                    log.debug("Result from hentOrganisasjon", organisasjon);
 
                     DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
 
                     updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
-                    updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar());
+                    updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar(new GregorianCalendar()));
 
                     if(validateOrganizationStructure(organisationResponse, updateBankAccountRequest)) {
-                        //handleEmployer.oppdaterKontonummer(updateBankAccountRequest);
-                        log.info("Successfully updated the account number for: ", updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
+                        handleEmployer.oppdaterKontonummer(updateBankAccountRequest);
+                        log.info("Successfully updated the account number for: {}", updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
                         SUCCESSFUL_MESSAGE_COUNTER.inc();
                     } else {
+                        log.error("Invalid organisation structure for request");
                         INVALID_ORG_STRUCTURE_COUNTER.inc();
                     }
                 }

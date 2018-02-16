@@ -8,8 +8,8 @@
     </appender>
 
 
-    <logger name="no.nav" level="INFO"/>
-    <logger name="org.apache.cxf.common.logging" level="WARN" additivity="false"/>
+    <logger name="no.nav" level="DEBUG"/>
+    <logger name="org.apache.cxf.common.logging" level="INFO" additivity="false"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

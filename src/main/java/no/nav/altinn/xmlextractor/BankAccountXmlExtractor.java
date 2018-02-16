@@ -3,21 +3,32 @@ package no.nav.altinn.xmlextractor;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.Sporingsdetalj;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.events.XMLEvent;
+import java.io.ByteArrayInputStream;
 import java.io.StringReader;
+import java.util.Base64;
 
 public class BankAccountXmlExtractor {
     private final XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
+
+    private static final String FORM_DATA_FIELD = "FormData";
+
     private final static String NEW_ACCOUNT_NUMBER_FIELD = "nyttBankkontonummer";
     private final static String ORGANISATION_NUMBER_FIELD = "organisasjonsnummer";
     private final static String SISTER_ORGANISATION_FIELD = "underenhet";
     private final static String PERSON_NUMBER_FIELD = "personidentifikator";
 
-    public OppdaterKontonummerRequest buildSoapRequestFromAltinnPayload(String xml) throws XMLStreamException {
+    private final static Base64.Decoder BASE64_DECODER = Base64.getDecoder();
+
+    private final static Logger log = LoggerFactory.getLogger(BankAccountXmlExtractor.class);
+
+    public OppdaterKontonummerRequest buildSoapRequestFromAltinnPayload(String xmlBase64) throws XMLStreamException {
         KontonummerOppdatering bankAccountUpdate = new KontonummerOppdatering();
         Sporingsdetalj trackingDetail = new Sporingsdetalj();
 
@@ -25,40 +36,51 @@ public class BankAccountXmlExtractor {
         updateRequest.setOverordnetEnhet(bankAccountUpdate);
         updateRequest.setSporingsdetalj(trackingDetail);
 
-        XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new StringReader(xml));
+        String formData = extractFormData(xmlBase64);
+        log.debug("Extracted FormData: {}", formData);
+
+        XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new StringReader(formData));
 
         while (reader.hasNext()) {
             int event = reader.next();
             if (event == XMLEvent.START_ELEMENT) {
                 switch (reader.getLocalName()) {
                     case NEW_ACCOUNT_NUMBER_FIELD:
-                        bankAccountUpdate.setKontonummer(reader.getText());
+                        bankAccountUpdate.setKontonummer(getText(reader));
                         break;
+
                     case ORGANISATION_NUMBER_FIELD:
-                        bankAccountUpdate.setOrgNr(reader.getText());
+                        bankAccountUpdate.setOrgNr(getText(reader));
                         break;
+
                     case PERSON_NUMBER_FIELD:
-                        trackingDetail.setFnr(reader.getText());
+                        if (reader.hasText()) {
+                            trackingDetail.setFnr(getText(reader));
+                        }
+                        break;
 
                     case SISTER_ORGANISATION_FIELD:
+                        // Since we might get an empty list of sister companies we count fields
+                        int fieldsAdded = 0;
                         KontonummerOppdatering sisterBankAccountUpdate = new KontonummerOppdatering();
                         while (reader.hasNext()) {
                             event = reader.next();
-
+                            if (event == XMLEvent.END_ELEMENT && reader.getLocalName().equals(SISTER_ORGANISATION_FIELD))
+                                break;
 
                             switch (reader.getLocalName()) {
                                 case NEW_ACCOUNT_NUMBER_FIELD:
-                                    sisterBankAccountUpdate.setKontonummer(reader.getText());
+                                    sisterBankAccountUpdate.setKontonummer(getText(reader));
                                     break;
                                 case ORGANISATION_NUMBER_FIELD:
-                                    sisterBankAccountUpdate.setOrgNr(reader.getText());
+                                    sisterBankAccountUpdate.setOrgNr(getText(reader));
                                     break;
                             }
-
-                            if (event == XMLEvent.END_ELEMENT && reader.getLocalName().equals("underenhet"))
-                                break;
+                            fieldsAdded ++;
                         }
-                        updateRequest.getUnderliggendeBedriftListe().add(sisterBankAccountUpdate);
+                        if (fieldsAdded > 0) {
+                            updateRequest.getUnderliggendeBedriftListe().add(sisterBankAccountUpdate);
+                        }
 
                         break;
                 }
@@ -68,24 +90,31 @@ public class BankAccountXmlExtractor {
         return updateRequest;
     }
 
-    public static class BankAccountUpdate {
-        private String accountNumber;
-        private String organisationNumber;
+    private String getText(XMLStreamReader reader) throws XMLStreamException {
+        int event = -1;
+        if (!reader.hasNext() || (event = reader.next()) != XMLEvent.CHARACTERS)
+            throw new RuntimeException("Expected CHARACTERS, got " + event);
+        return reader.getText();
+    }
 
-        public void setAccountNumber(String accountNumber) {
-            this.accountNumber = accountNumber;
-        }
-
-        public void setOrganisationNumber(String organisationNumber) {
-            this.organisationNumber = organisationNumber;
-        }
-
-        public String getAccountNumber() {
-            return accountNumber;
-        }
-
-        public String getOrganisationNumber() {
-            return organisationNumber;
+    private String extractFormData(String base64) throws XMLStreamException {
+        XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new ByteArrayInputStream(BASE64_DECODER.decode(base64)));
+        try {
+            while (reader.hasNext()) {
+                if (reader.next() == XMLEvent.START_ELEMENT) {
+                    if (FORM_DATA_FIELD.equals(reader.getLocalName())) {
+                        getText(reader);
+                        int event = -1;
+                        if (!reader.hasNext() || (event = reader.next()) != XMLEvent.CDATA)
+                            throw new RuntimeException("Expected CDATA, got " + event);
+                        return reader.getText();
+                    }
+                }
+            }
+            throw new RuntimeException("Could not find field FormData");
+        } finally {
+            System.out.println(reader.next());
+            reader.close();
         }
     }
 }

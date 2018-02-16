@@ -8,7 +8,7 @@ public class EnvironmentConfig {
 
     public EnvironmentConfig() {
         aaregHentOrganisasjonEndpointURL = getVariable("AAREG_HENT_ORGANISASJON_ENDPOINTURL");
-        aaregOppdaterKontonummerEndpointURL = getVariable("AAREG_HENT_ORGANISASJON_ENDPOINTURL");
+        aaregOppdaterKontonummerEndpointURL = getVariable("AAREG_OPPDATER_KONTONUMMER_ENDPOINTURL");
         aaregWSUsername = getVariable("AAREGPOLICYUSER_USERNAME");
         aaregWSPassword = getVariable("AAREGPOLICYUSER_PASSWORD");
     }
