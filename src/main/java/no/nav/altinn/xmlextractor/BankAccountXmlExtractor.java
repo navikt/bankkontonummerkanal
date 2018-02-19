@@ -1,20 +1,24 @@
 package no.nav.altinn.xmlextractor;
 
+import io.reactivex.functions.Function;
+import no.nav.altinn.messages.ExtractedMessage;
+import no.nav.altinn.messages.IncomingMessage;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.Sporingsdetalj;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.datatype.DatatypeFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.events.XMLEvent;
-import java.io.ByteArrayInputStream;
+import java.io.Reader;
 import java.io.StringReader;
-import java.util.Base64;
+import java.util.GregorianCalendar;
 
-public class BankAccountXmlExtractor {
+public class BankAccountXmlExtractor implements Function<IncomingMessage, ExtractedMessage<OppdaterKontonummerRequest>> {
     private final XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
 
     private static final String FORM_DATA_FIELD = "FormData";
@@ -24,11 +28,9 @@ public class BankAccountXmlExtractor {
     private final static String SISTER_ORGANISATION_FIELD = "underenhet";
     private final static String PERSON_NUMBER_FIELD = "personidentifikator";
 
-    private final static Base64.Decoder BASE64_DECODER = Base64.getDecoder();
-
     private final static Logger log = LoggerFactory.getLogger(BankAccountXmlExtractor.class);
 
-    public OppdaterKontonummerRequest buildSoapRequestFromAltinnPayload(String xmlBase64) throws XMLStreamException {
+    public OppdaterKontonummerRequest buildSoapRequestFromAltinnPayload(Reader xmlReader) throws XMLStreamException {
         KontonummerOppdatering bankAccountUpdate = new KontonummerOppdatering();
         Sporingsdetalj trackingDetail = new Sporingsdetalj();
 
@@ -36,7 +38,7 @@ public class BankAccountXmlExtractor {
         updateRequest.setOverordnetEnhet(bankAccountUpdate);
         updateRequest.setSporingsdetalj(trackingDetail);
 
-        String formData = extractFormData(xmlBase64);
+        String formData = extractFormData(xmlReader);
         log.debug("Extracted FormData: {}", formData);
 
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new StringReader(formData));
@@ -97,8 +99,8 @@ public class BankAccountXmlExtractor {
         return reader.getText();
     }
 
-    private String extractFormData(String base64) throws XMLStreamException {
-        XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new ByteArrayInputStream(BASE64_DECODER.decode(base64)));
+    private String extractFormData(Reader xml) throws XMLStreamException {
+        XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(xml);
         try {
             while (reader.hasNext()) {
                 if (reader.next() == XMLEvent.START_ELEMENT) {
@@ -116,5 +118,15 @@ public class BankAccountXmlExtractor {
             System.out.println(reader.next());
             reader.close();
         }
+    }
+
+    @Override
+    public ExtractedMessage<OppdaterKontonummerRequest> apply(IncomingMessage incomingMessage) throws Exception {
+        OppdaterKontonummerRequest updateBankAccountRequest = buildSoapRequestFromAltinnPayload(new StringReader(incomingMessage.xmlMessage));
+        DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
+
+        updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(incomingMessage.externalAttachment.getArchRef());
+        updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar(new GregorianCalendar()));
+        return new ExtractedMessage<>(incomingMessage, updateBankAccountRequest);
     }
 }
