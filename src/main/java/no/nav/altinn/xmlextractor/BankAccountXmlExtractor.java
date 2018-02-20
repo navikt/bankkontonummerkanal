@@ -56,9 +56,7 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
                         break;
 
                     case PERSON_NUMBER_FIELD:
-                        if (reader.hasText()) {
-                            trackingDetail.setFnr(getText(reader));
-                        }
+                        trackingDetail.setFnr(getText(reader));
                         break;
 
                     case SISTER_ORGANISATION_FIELD:
@@ -95,7 +93,7 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
     private String getText(XMLStreamReader reader) throws XMLStreamException {
         int event = -1;
         if (!reader.hasNext() || (event = reader.next()) != XMLEvent.CHARACTERS)
-            throw new RuntimeException("Expected CHARACTERS, got " + event);
+            return null;
         return reader.getText();
     }
 
