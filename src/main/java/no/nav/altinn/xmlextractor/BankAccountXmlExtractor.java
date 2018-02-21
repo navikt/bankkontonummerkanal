@@ -25,7 +25,7 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
 
     private final static String NEW_ACCOUNT_NUMBER_FIELD = "nyttBankkontonummer";
     private final static String ORGANISATION_NUMBER_FIELD = "organisasjonsnummer";
-    private final static String SISTER_ORGANISATION_FIELD = "underenhet";
+    private final static String SISTER_ORGANISATION_FIELD = "underEnhet";
     private final static String PERSON_NUMBER_FIELD = "personidentifikator";
 
     private final static Logger log = LoggerFactory.getLogger(BankAccountXmlExtractor.class);
@@ -68,13 +68,15 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
                             if (event == XMLEvent.END_ELEMENT && reader.getLocalName().equals(SISTER_ORGANISATION_FIELD))
                                 break;
 
-                            switch (reader.getLocalName()) {
-                                case NEW_ACCOUNT_NUMBER_FIELD:
-                                    sisterBankAccountUpdate.setKontonummer(getText(reader));
-                                    break;
-                                case ORGANISATION_NUMBER_FIELD:
-                                    sisterBankAccountUpdate.setOrgNr(getText(reader));
-                                    break;
+                            if (event == XMLEvent.START_ELEMENT) {
+                                switch (reader.getLocalName()) {
+                                    case NEW_ACCOUNT_NUMBER_FIELD:
+                                        sisterBankAccountUpdate.setKontonummer(getText(reader));
+                                        break;
+                                    case ORGANISATION_NUMBER_FIELD:
+                                        sisterBankAccountUpdate.setOrgNr(getText(reader));
+                                        break;
+                                }
                             }
                             fieldsAdded ++;
                         }
@@ -121,10 +123,9 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
     @Override
     public ExtractedMessage<OppdaterKontonummerRequest> apply(IncomingMessage incomingMessage) throws Exception {
         OppdaterKontonummerRequest updateBankAccountRequest = buildSoapRequestFromAltinnPayload(new StringReader(incomingMessage.xmlMessage));
-        DatatypeFactory datatypeFactory = DatatypeFactory.newInstance();
 
         updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(incomingMessage.externalAttachment.getArchRef());
-        updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(datatypeFactory.newXMLGregorianCalendar(new GregorianCalendar()));
+        updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(DatatypeFactory.newInstance().newXMLGregorianCalendar(new GregorianCalendar()));
         return new ExtractedMessage<>(incomingMessage, updateBankAccountRequest);
     }
 }
