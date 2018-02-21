@@ -11,7 +11,7 @@
     <logger name="no.nav" level="DEBUG"/>
     <logger name="org.apache.cxf.common.logging" level="INFO" additivity="false"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="CONSOLE"/>
     </root>
 

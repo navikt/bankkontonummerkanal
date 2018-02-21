@@ -80,7 +80,7 @@ public class BankAccountXmlExtractorTest {
         BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
-                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter")))));
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter.xml")))));
 
         Assert.assertEquals("54130612346", oppdaterKontonummerRequest.getUnderliggendeBedriftListe().get(0).getKontonummer() );
     }
@@ -91,7 +91,7 @@ public class BankAccountXmlExtractorTest {
         BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
-                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter")))));
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter.xml")))));
 
         Assert.assertEquals("54130612347", oppdaterKontonummerRequest.getUnderliggendeBedriftListe().get(1).getKontonummer() );
     }
@@ -102,9 +102,9 @@ public class BankAccountXmlExtractorTest {
         BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
-                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter")))));
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter.xml")))));
 
-        Assert.assertEquals("987654322", oppdaterKontonummerRequest.getUnderliggendeBedriftListe().get(0).getOrgNr() );
+        Assert.assertEquals("987654321", oppdaterKontonummerRequest.getUnderliggendeBedriftListe().get(0).getOrgNr() );
     }
 
     @Test
@@ -113,7 +113,7 @@ public class BankAccountXmlExtractorTest {
         BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
-                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter")))));
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter.xml")))));
 
         Assert.assertEquals("987654323", oppdaterKontonummerRequest.getUnderliggendeBedriftListe().get(1).getOrgNr() );
     }
@@ -124,7 +124,7 @@ public class BankAccountXmlExtractorTest {
         BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
-                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter")))));
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithTwoUnderenheter.xml")))));
 
         Assert.assertEquals(2, oppdaterKontonummerRequest.getUnderliggendeBedriftListe().size() );
     }
@@ -173,6 +173,37 @@ public class BankAccountXmlExtractorTest {
 
         Assert.assertEquals("Check if InnsendtTidspunkt is correct, we compare on the minute",
                 xmlGregorianCalendar.getMinute(), oppdaterKontonummerRequest.getSporingsdetalj().getInnsendtTidspunkt().getMinute());
+    }
+
+    @Test
+    public void shouldSetNyttBankkontonummerToNull() throws Exception{
+
+        BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
+
+        OppdaterKontonummerRequest oppdaterKontonummerRequest = bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithnyttBankkontonummerNull.xml")))));
+
+        Assert.assertEquals(null, oppdaterKontonummerRequest.getOverordnetEnhet().getKontonummer());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldThrowRuntimeExceptionWhenNoCDATA() throws Exception{
+
+        BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
+
+       bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
+               new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageNoCDATA.xml")))));
+
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void shouldThrowRuntimeExceptionWhenNoFormdata() throws Exception{
+
+        BankAccountXmlExtractor bankAccountXmlExtractor = new BankAccountXmlExtractor();
+
+        bankAccountXmlExtractor.buildSoapRequestFromAltinnPayload(
+                new StringReader(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/xmlextractor/xmlMessageWithNoFormData.xml")))));
+
     }
 
 
