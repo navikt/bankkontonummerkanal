@@ -11,8 +11,8 @@ import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
-import org.apache.cxf.interceptor.LoggingInInterceptor;
-import org.apache.cxf.interceptor.LoggingOutInterceptor;
+import org.apache.cxf.ext.logging.LoggingInInterceptor;
+import org.apache.cxf.ext.logging.LoggingOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.CallbackHandler;
 import javax.xml.ws.soap.SOAPFaultException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Properties;
 
 public class BankAccountNumberRoute implements Runnable {
     private final static Counter INCOMING_MESSAGE_COUNTER = Counter.build().name("incoming_message_count")
