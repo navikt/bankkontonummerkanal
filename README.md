@@ -43,11 +43,11 @@ Create a runnable JAR:
 Create a Docker image using the included Dockerfile (see the notes below on Docker if you're on Windows):
 
 ```
-docker build -f path\to\Dockerfile -t integrasjon/altinnkanal-2:<version>
+docker build -f path\to\Dockerfile -t integrasjon/bankkontonummer-kanal:<version>
 
-docker tag integrasjon/altinnkanal-2:<version> docker.adeo.no:5000/integrasjon/altinnkanal-2:<version>
+docker tag integrasjon/bankkontonummer-kanal:<version> docker.adeo.no:5000/integrasjon/bankkontonummer-kanal:<version>
 
-docker push docker.adeo.no:5000/integrasjon/altinnkanal-2:<version>
+docker push docker.adeo.no:5000/integrasjon/bankkontonummer-kanal:<version>
 ```
 
 #### Deploy
@@ -60,7 +60,7 @@ Pro-tip: use [nais-cli](https://github.com/nais/naisd).
 Add
 
 ```
-- job_name: 'altinnkanal'
+- job_name: 'bankkontonummer-kanal'
   
     static_configs:
       - targets: ['localhost:8080']
@@ -81,12 +81,12 @@ building the Docker images.
 * Push to docker.adeo.no
 
 ```
-docker build -f Dockerfile -t altinnkanal .
+docker build -f Dockerfile -t bankkontonummer-kanal .
 ```
 
 Run
 ```
-docker run --rm -p 8080:8080 -t altinnkanal
+docker run --rm -p 8080:8080 -t bankkontonummer-kanal
 ```
 
 If "port already allocated" errors, find and stop existing containers:

@@ -1,4 +1,4 @@
-image: "docker.adeo.no:5000/integrasjon/altinnkanal-2"
+image: "docker.adeo.no:5000/integrasjon/bankkontonummer-kanal"
 replicas:
   min: 1
   max: 4
