@@ -11,6 +11,7 @@ import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
+import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.ext.logging.LoggingInInterceptor;
 import org.apache.cxf.ext.logging.LoggingOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.callback.CallbackHandler;
 import javax.xml.ws.soap.SOAPFaultException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Properties;
@@ -65,22 +65,16 @@ public class BankAccountNumberRoute implements Runnable {
         // Configure the endpoint used for hentArbeidsgiver
         JaxWsProxyFactoryBean arbeidsGiverFactory = new JaxWsProxyFactoryBean();
         arbeidsGiverFactory.setAddress(environmentConfig.aaregHentOrganisasjonEndpointURL);
-        arbeidsGiverFactory.setOutInterceptors(Arrays.asList(
-                new LoggingOutInterceptor(),
-                passwordOutInterceptor
-        ));
-        arbeidsGiverFactory.setInInterceptors(Collections.singletonList(new LoggingInInterceptor()));
+        arbeidsGiverFactory.getFeatures().add(new LoggingFeature());
+        arbeidsGiverFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         arbeidsGiverFactory.setServiceClass(Arbeidsgiver.class);
         this.employer = (Arbeidsgiver) arbeidsGiverFactory.create();
 
         // Configure then endpoint used for oppdaterKontonummer
         JaxWsProxyFactoryBean handleEmployerFactory = new JaxWsProxyFactoryBean();
         handleEmployerFactory.setAddress(environmentConfig.aaregOppdaterKontonummerEndpointURL);
-        handleEmployerFactory.setOutInterceptors(Arrays.asList(
-                new LoggingOutInterceptor(),
-                passwordOutInterceptor
-        ));
-        handleEmployerFactory.setInInterceptors(Collections.singletonList(new LoggingInInterceptor()));
+        handleEmployerFactory.getFeatures().add(new LoggingFeature());
+        handleEmployerFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         handleEmployerFactory.setServiceClass(BehandleArbeidsgiver.class);
         handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
 
