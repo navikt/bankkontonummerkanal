@@ -18,7 +18,8 @@ pipeline {
             steps {
                 script {
                     commitHashShort = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-                    applicationVersion = "${env.APPLICATION_BASE_VERSION}.${env.BUILD_ID}-${commitHashShort}"
+                    pom = readMavenPom file: 'pom.xml'
+                    applicationVersion = "${pom.version}.${env.BUILD_ID}-${commitHashShort}"
                     applicationFullName = "${env.APPLICATION_FASIT_NAME}:${applicationVersion}"
                 }
             }
