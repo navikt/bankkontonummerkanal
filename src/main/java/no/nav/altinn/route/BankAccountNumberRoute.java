@@ -12,8 +12,6 @@ import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
 import org.apache.cxf.ext.logging.LoggingFeature;
-import org.apache.cxf.ext.logging.LoggingInInterceptor;
-import org.apache.cxf.ext.logging.LoggingOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -38,15 +36,14 @@ public class BankAccountNumberRoute implements Runnable {
     private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build().name("invalid_org_strcture_count")
             .help("Counts the number of messages that failed because the organization structure was invalid").create();
 
+    private final static long RETRY_INTERVAL = 5000;
+
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
-    private Arbeidsgiver employer;
-    private BehandleArbeidsgiver handleEmployer;
     private final BankAccountXmlExtractor xmlExtractor = new BankAccountXmlExtractor();
-    private final KafkaBackoutTask backoutTask;
     private final KafkaPoller poller;
     private final AARegOrganisationStructureValidator structureValidator;
     private final AARegUpdaterTask updaterTask;
-    private final long retryInterval = 5000;
+    private final KafkaBackoutTask backoutTask;
 
     public BankAccountNumberRoute(String partition, String backoutTopic, Charset charset,
                                   Properties kafkaConsumerProperties, Properties kafkaProducerProperties,
@@ -68,7 +65,7 @@ public class BankAccountNumberRoute implements Runnable {
         arbeidsGiverFactory.getFeatures().add(new LoggingFeature());
         arbeidsGiverFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         arbeidsGiverFactory.setServiceClass(Arbeidsgiver.class);
-        this.employer = (Arbeidsgiver) arbeidsGiverFactory.create();
+        Arbeidsgiver employer = (Arbeidsgiver) arbeidsGiverFactory.create();
 
         // Configure then endpoint used for oppdaterKontonummer
         JaxWsProxyFactoryBean handleEmployerFactory = new JaxWsProxyFactoryBean();
@@ -76,7 +73,7 @@ public class BankAccountNumberRoute implements Runnable {
         handleEmployerFactory.getFeatures().add(new LoggingFeature());
         handleEmployerFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         handleEmployerFactory.setServiceClass(BehandleArbeidsgiver.class);
-        handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
+        BehandleArbeidsgiver handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
 
         Consumer<String, ExternalAttachment> consumer = new KafkaConsumer<>(kafkaConsumerProperties);
         consumer.subscribe(Collections.singletonList(partition));
@@ -129,7 +126,7 @@ public class BankAccountNumberRoute implements Runnable {
             } catch (Exception e) {
                 if (e instanceof SOAPFaultException)
                     throw e; // Rethrow soap faults since we only want to retry when AAReg is down
-                log.warn("Unable to contact AAReg, retrying in " + retryInterval + " ms", e);
+                log.warn("Unable to contact AAReg, retrying in " + RETRY_INTERVAL + " ms", e);
             }
         }
         return predicate.test(value);
