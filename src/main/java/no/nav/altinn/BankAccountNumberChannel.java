@@ -1,6 +1,5 @@
 package no.nav.altinn;
 
-import com.google.common.base.Charsets;
 import io.prometheus.client.exporter.MetricsServlet;
 import no.nav.altinn.config.ConfigurationFields;
 import no.nav.altinn.config.EnvironmentConfig;
@@ -12,7 +11,6 @@ import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Properties;
 
 public class BankAccountNumberChannel {
@@ -54,7 +52,7 @@ public class BankAccountNumberChannel {
         String bankAccountChangeTopic = applicationProperties.getProperty(ConfigurationFields.BANKACCOUNT_NUMBER_CHANGED_TOPIC);
         String backoutTopic = applicationProperties.getProperty(ConfigurationFields.BACKOUT_TOPIC);
 
-        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, backoutTopic, Charsets.UTF_8,
+        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, backoutTopic,
                 kafkaConsumerProperties, kafkaProducerProperties, new EnvironmentConfig());
         route.run();
     }

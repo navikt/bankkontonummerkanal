@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.security.auth.callback.CallbackHandler;
 import javax.xml.ws.soap.SOAPFaultException;
-import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Properties;
@@ -45,9 +44,8 @@ public class BankAccountNumberRoute implements Runnable {
     private final AARegUpdaterTask updaterTask;
     private final KafkaBackoutTask backoutTask;
 
-    public BankAccountNumberRoute(String partition, String backoutTopic, Charset charset,
-                                  Properties kafkaConsumerProperties, Properties kafkaProducerProperties,
-                                  EnvironmentConfig environmentConfig) {
+    public BankAccountNumberRoute(String partition, String backoutTopic, Properties kafkaConsumerProperties,
+                                  Properties kafkaProducerProperties, EnvironmentConfig environmentConfig) {
         // Configure password callback handler
         CallbackHandler pwCallback = callbacks -> ((WSPasswordCallback)callbacks[0]).setPassword(environmentConfig.aaregWSPassword);
 
@@ -77,7 +75,7 @@ public class BankAccountNumberRoute implements Runnable {
 
         Consumer<String, ExternalAttachment> consumer = new KafkaConsumer<>(kafkaConsumerProperties);
         consumer.subscribe(Collections.singletonList(partition));
-        poller = new KafkaPoller(consumer, charset);
+        poller = new KafkaPoller(consumer);
 
         KafkaProducer<String, ExternalAttachment> producer = new KafkaProducer<>(kafkaProducerProperties);
         backoutTask = new KafkaBackoutTask(backoutTopic, producer);

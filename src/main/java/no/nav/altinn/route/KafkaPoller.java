@@ -9,17 +9,14 @@ import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 public class KafkaPoller implements Publisher<IncomingMessage> {
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final Consumer<String, ExternalAttachment> consumer;
-    private final Charset charset;
 
-    public KafkaPoller(Consumer<String, ExternalAttachment> consumer, Charset charset) {
+    public KafkaPoller(Consumer<String, ExternalAttachment> consumer) {
         this.consumer = consumer;
-        this.charset = charset;
     }
 
     public ArrayList<IncomingMessage> poll() {
