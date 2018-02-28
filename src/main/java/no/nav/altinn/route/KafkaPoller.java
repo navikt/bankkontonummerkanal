@@ -9,13 +9,10 @@ import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Base64;
 
 public class KafkaPoller implements Publisher<IncomingMessage> {
-    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final Consumer<String, ExternalAttachment> consumer;
     private final Charset charset;
@@ -30,8 +27,7 @@ public class KafkaPoller implements Publisher<IncomingMessage> {
         for (ConsumerRecord<String, ExternalAttachment> consumerRecords : consumer.poll(1)) {
             log.info("Polled message from kafka");
             ExternalAttachment externalAttachment = consumerRecords.value();
-            String xml = new String(BASE64_DECODER.decode(externalAttachment.getBatch()), charset);
-            incomingMessages.add(new IncomingMessage(xml, externalAttachment));
+            incomingMessages.add(new IncomingMessage(externalAttachment.getBatch(), externalAttachment));
         }
         return incomingMessages;
     }
