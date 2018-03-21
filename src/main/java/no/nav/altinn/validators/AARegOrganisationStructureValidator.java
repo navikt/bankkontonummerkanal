@@ -1,5 +1,6 @@
 package no.nav.altinn.validators;
 
+import io.prometheus.client.Gauge;
 import io.reactivex.functions.Predicate;
 import no.nav.altinn.messages.ExtractedMessage;
 import no.nav.altinn.route.BankAccountNumberRoute;
@@ -16,21 +17,36 @@ import java.util.List;
 import java.util.Optional;
 
 public class AARegOrganisationStructureValidator implements Predicate<ExtractedMessage<OppdaterKontonummerRequest>> {
-    private final Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
+    private static final Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final Arbeidsgiver employer;
     public AARegOrganisationStructureValidator(Arbeidsgiver employer) {
         this.employer = employer;
     }
 
-    public static boolean validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update) {
-        for (KontonummerOppdatering bankAccountUpdate : update.getUnderliggendeBedriftListe()) {
-            if (bankAccountUpdate.getOrgNr() == null || bankAccountUpdate.getOrgNr().trim().isEmpty())
-                return false;
-            Optional<RelatertOrganisasjonSammendrag> daughterOrganization = findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
-            if (!daughterOrganization.isPresent() || !daughterOrganization.get().getStatus().getKode().equals("1"))
-                return false;
+    public static Result validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update) {
+        if (update.getOverordnetEnhet().getOrgNr() == null || update.getOverordnetEnhet().getOrgNr().isEmpty()) {
+            return Result.MissingHovedenhetOrgNr;
         }
-        return true;
+        if (update.getOverordnetEnhet().getKontonummer() == null || update.getOverordnetEnhet().getKontonummer().isEmpty()) {
+            return Result.MissingHovedenhetKontonummer;
+        }
+
+        for (KontonummerOppdatering bankAccountUpdate : update.getUnderliggendeBedriftListe()) {
+            if (bankAccountUpdate.getOrgNr() == null || bankAccountUpdate.getOrgNr().trim().isEmpty()) {
+                return Result.MissingUnderenhetOrgNr;
+            }
+            if (bankAccountUpdate.getKontonummer() == null || bankAccountUpdate.getKontonummer().isEmpty()) {
+                return Result.MissingUnderenhetKontonummer;
+            }
+
+            Optional<RelatertOrganisasjonSammendrag> daughterOrganization = findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
+
+            if (!daughterOrganization.isPresent())
+                return Result.InvalidStructure;
+            if (!daughterOrganization.get().getStatus().getKode().equals("1"))
+                return Result.StatusCodeIs0;
+        }
+        return Result.Ok;
 
     }
 
@@ -46,11 +62,23 @@ public class AARegOrganisationStructureValidator implements Predicate<ExtractedM
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 
-        HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
-        getOrganisationRequest.setOrgNr(updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
-        getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
+        try (Gauge.Timer queryTimer = BankAccountNumberRoute.AAREG_QUERY_TIMER.startTimer()) {
+            HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
+            getOrganisationRequest.setOrgNr(updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
+            getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
 
-        HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
-        return validateOrganizationStructure(organisationResponse, updateBankAccountRequest);
+            HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
+            return validateOrganizationStructure(organisationResponse, updateBankAccountRequest) == Result.Ok;
+        }
+    }
+
+    public enum Result {
+        Ok,
+        InvalidStructure,
+        MissingHovedenhetKontonummer,
+        MissingUnderenhetKontonummer,
+        MissingHovedenhetOrgNr,
+        MissingUnderenhetOrgNr,
+        StatusCodeIs0
     }
 }

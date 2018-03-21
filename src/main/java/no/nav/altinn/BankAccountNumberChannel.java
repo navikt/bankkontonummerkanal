@@ -1,6 +1,7 @@
 package no.nav.altinn;
 
 import io.prometheus.client.exporter.MetricsServlet;
+import no.nav.altinn.config.ApplicationProperties;
 import no.nav.altinn.config.ConfigurationFields;
 import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.endpoints.SelfcheckHandler;
@@ -14,7 +15,6 @@ import java.io.IOException;
 import java.util.Properties;
 
 public class BankAccountNumberChannel {
-    private Server server;
 
     public static void main(String[] args) throws IOException {
         new BankAccountNumberChannel().start(args);
@@ -22,15 +22,37 @@ public class BankAccountNumberChannel {
 
     private void start(String[] args) throws IOException {
         // Read configs
-        Properties applicationProperties = new Properties();
-        applicationProperties.load(getClass().getResourceAsStream("/application.properties"));
+        Properties propertyFile = new Properties();
+        propertyFile.load(getClass().getResourceAsStream("/application.properties"));
+        ApplicationProperties applicationProperties = new ApplicationProperties(propertyFile);
 
-        Properties kafkaConsumerProperties = new Properties();
-        kafkaConsumerProperties.load(getClass().getResourceAsStream("/kafka_consumer.properties"));
-        Properties kafkaProducerProperties = new Properties();
-        kafkaProducerProperties.load(getClass().getResourceAsStream("/kafka_producer.properties"));
 
-        server = new Server(8080);
+        Properties kafkaProperties = new Properties();
+        kafkaProperties.load(getClass().getResourceAsStream("/kafka_consumer.properties"));
+
+        Server server = createHTTPServer(8080);
+
+        try {
+            server.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        BankAccountNumberRoute route = new BankAccountNumberRoute(applicationProperties, kafkaProperties, new EnvironmentConfig());
+        route.run();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            route.stop();
+            try {
+                server.stop();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }));
+    }
+
+    public Server createHTTPServer(int port) {
+        Server server = new Server(port);
 
         HandlerCollection handlerCollection = new HandlerCollection();
 
@@ -43,17 +65,6 @@ public class BankAccountNumberChannel {
 
         server.setHandler(handlerCollection);
 
-        try {
-            server.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        String bankAccountChangeTopic = applicationProperties.getProperty(ConfigurationFields.BANKACCOUNT_NUMBER_CHANGED_TOPIC);
-        String backoutTopic = applicationProperties.getProperty(ConfigurationFields.BACKOUT_TOPIC);
-
-        BankAccountNumberRoute route = new BankAccountNumberRoute(bankAccountChangeTopic, backoutTopic,
-                kafkaConsumerProperties, kafkaProducerProperties, new EnvironmentConfig());
-        route.run();
+        return server;
     }
 }

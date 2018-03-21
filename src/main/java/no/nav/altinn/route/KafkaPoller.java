@@ -29,6 +29,10 @@ public class KafkaPoller implements Publisher<IncomingMessage> {
         return incomingMessages;
     }
 
+    public void stop() {
+        consumer.close();
+    }
+
     public void commit() {
         consumer.commitSync();
     }

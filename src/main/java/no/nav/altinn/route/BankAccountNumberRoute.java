@@ -1,7 +1,9 @@
 package no.nav.altinn.route;
 
 import io.prometheus.client.Counter;
+import io.prometheus.client.Gauge;
 import io.reactivex.functions.Predicate;
+import no.nav.altinn.config.ApplicationProperties;
 import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.messages.ExtractedMessage;
 import no.nav.altinn.messages.IncomingMessage;
@@ -16,7 +18,6 @@ import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.wss4j.common.ext.WSPasswordCallback;
 import org.apache.wss4j.dom.WSConstants;
 import org.apache.wss4j.dom.handler.WSHandlerConstants;
@@ -29,11 +30,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Properties;
 
+import static net.logstash.logback.argument.StructuredArguments.*;
+
 public class BankAccountNumberRoute implements Runnable {
     private final static Counter INCOMING_MESSAGE_COUNTER = Counter.build().name("incoming_message_count")
             .help("Counts the number of incoming messages").register();
     private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build().name("invalid_org_strcture_count")
             .help("Counts the number of messages that failed because the organization structure was invalid").create();
+    private final static Gauge FULL_ROUTE_TIMER = Gauge.build().name("full_route_timer")
+            .help("The time it takes a message to go through the full route").create();
+    public final static Gauge AAREG_QUERY_TIMER = Gauge.build().name("aareg_query_timer")
+            .help("The time it takes to query aareg for the organisation information").create();
+    private final static Gauge AAREG_UPDATE_TIMER = Gauge.build().name("aareg_update_timer")
+            .help("The time it takes to update the bank account number at aareg").create();
 
     private final static long RETRY_INTERVAL = 5000;
 
@@ -42,10 +51,10 @@ public class BankAccountNumberRoute implements Runnable {
     private final KafkaPoller poller;
     private final AARegOrganisationStructureValidator structureValidator;
     private final AARegUpdaterTask updaterTask;
-    private final KafkaBackoutTask backoutTask;
+    private boolean running = true;
 
-    public BankAccountNumberRoute(String partition, String backoutTopic, Properties kafkaConsumerProperties,
-                                  Properties kafkaProducerProperties, EnvironmentConfig environmentConfig) {
+    public BankAccountNumberRoute(ApplicationProperties applicationProperties, Properties kafkaConsumerProperties,
+                                  EnvironmentConfig environmentConfig) {
         // Configure password callback handler
         CallbackHandler pwCallback = callbacks -> ((WSPasswordCallback)callbacks[0]).setPassword(environmentConfig.aaregWSPassword);
 
@@ -74,43 +83,46 @@ public class BankAccountNumberRoute implements Runnable {
         BehandleArbeidsgiver handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
 
         Consumer<String, ExternalAttachment> consumer = new KafkaConsumer<>(kafkaConsumerProperties);
-        consumer.subscribe(Collections.singletonList(partition));
+        consumer.subscribe(Collections.singletonList(applicationProperties.getBankAccountChangedTopic()));
         poller = new KafkaPoller(consumer);
-
-        KafkaProducer<String, ExternalAttachment> producer = new KafkaProducer<>(kafkaProducerProperties);
-        backoutTask = new KafkaBackoutTask(backoutTopic, producer);
 
         structureValidator = new AARegOrganisationStructureValidator(employer);
         updaterTask = new AARegUpdaterTask(handleEmployer);
     }
 
+    public void stop() {
+        running = false;
+        poller.stop();
+    }
+
     @Override
     public void run() {
-        while (true) {
+        while (running) {
             for (IncomingMessage incoming : poller.poll()) {
+                Gauge.Timer fullRouteTimer = FULL_ROUTE_TIMER.startTimer();
                 INCOMING_MESSAGE_COUNTER.inc();
+                ExternalAttachment externalAttachment = incoming.externalAttachment;
                 try {
                     ExtractedMessage<OppdaterKontonummerRequest> extracted = xmlExtractor.apply(incoming);
                     if (retry(5, extracted, structureValidator)) {
+                        Gauge.Timer aaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer();
                         retry(5, extracted, e -> {
                             updaterTask.accept(e);
                             return true;
                         });
+                        aaregUpdateTimer.close();
+                        fullRouteTimer.close();
                     } else {
-                        log.error("Received message with invalid organisation structure with archive reference {}",
-                                incoming.externalAttachment.getArchRef());
+                        log.error("Received message with invalid organisation. {}, {}",
+                                keyValue("archRef", incoming.externalAttachment.getArchRef()),
+                                keyValue("fullXmlMessage", incoming.xmlMessage));
                         INVALID_ORG_STRUCTURE_COUNTER.inc();
-                        backoutTask.accept(incoming);
                     }
                 } catch (Exception e) {
-                    log.error("An error occurred, sending to backout topic", e);
-                    try {
-                        backoutTask.accept(incoming);
-                    } catch (Exception backoutException) {
-                        log.error("Failed to send to backout, dumping message content to log", backoutException);
-                        log.error("Archive reference: ", incoming.externalAttachment.getArchRef());
-                        log.error(incoming.xmlMessage);
-                    }
+                    log.error("Exception caught while updating account number in AAReg. {}, {}",
+                            keyValue("archRef", externalAttachment.getArchRef()),
+                            keyValue("fullXmlMessage", incoming.xmlMessage),
+                            e);
                 }
                 poller.commit();
             }

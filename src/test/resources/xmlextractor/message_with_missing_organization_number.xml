@@ -1,0 +1,51 @@
+<DataBatch schemaVersion="1.0" batchReference="54321" previousReference="12345" receiverReference="1c3bdab9-97b3-4dca-a328-d55852826af5" timeStamp="2018-03-20T13:37:00" formTasksInBatch="1">
+    <DataUnits>
+        <DataUnit reportee="12345678912" archiveReference="AR12345678" archiveTimeStamp="2018-03-20T13:37:00.000">
+            <FormTask>
+                <ServiceCode>2896</ServiceCode>
+                <ServiceEditionCode>87</ServiceEditionCode>
+                <Form>
+                    <DataFormatId>1234</DataFormatId>
+                    <DataFormatVersion>4321</DataFormatVersion>
+                    <Reference>12345</Reference>
+                    <ParentReference>0</ParentReference>
+                    <FormData>
+                        <![CDATA[
+							<ns3:melding xmlns:ns3="http://seres.no/xsd/NAV/Bankkontonummer_M/2012">
+								<ns3:Skjemainnhold>
+									<ns3:altinnReferanse />
+									<ns3:kilde />
+									<ns3:personidentifikator>12345678912</ns3:personidentifikator>
+									<ns3:tidspunkt />
+									<ns3:enhet>
+										<ns3:enhetsnavn>Bedrift AS</ns3:enhetsnavn>
+										<ns3:nyttBankkontonummer>12345678912</ns3:nyttBankkontonummer>
+										<ns3:forretningsadresse>1234 Oslo</ns3:forretningsadresse>
+										<ns3:postadresse>Addresseveien 1</ns3:postadresse>
+                                        <ns3:underenhet>
+                                            <ns3:underEnhet>
+                                                <ns3:enhetsnavn>Underenhet 1</ns3:enhetsnavn>
+                                                <ns3:forretningsadresse>1234 Oslo</ns3:forretningsadresse>
+                                                <ns3:nyttBankkontonummer>12345678913</ns3:nyttBankkontonummer>
+                                                <ns3:naavaerendeBankkontonummer>12345678931</ns3:naavaerendeBankkontonummer>
+                                                <ns3:organisasjonsnummer>987654322</ns3:organisasjonsnummer>
+                                                <ns3:postadresse>Addresseveien 2</ns3:postadresse>
+                                            </ns3:underEnhet>
+										</ns3:underenhet>
+										<ns3:tidligereBankkontonummer>
+											<ns3:tidligereKontonummer></ns3:tidligereKontonummer>
+										</ns3:tidligereBankkontonummer>
+									</ns3:enhet>
+								</ns3:Skjemainnhold>
+							</ns3:melding>]]>
+                    </FormData>
+                </Form>
+            </FormTask>
+        </DataUnit>
+    </DataUnits>
+    <Attachments>
+        <Attachment archiveReference="AR12345678" fileName="test.txt" internalFileName="test.txt" attachmentType="text" isEncrypted="false">
+            VGV4dCBmaWxlCg==
+        </Attachment>
+    </Attachments>
+</DataBatch>
