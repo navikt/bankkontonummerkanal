@@ -21,6 +21,24 @@
         <junit.version>4.12</junit.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>nav-nexus3-snapshot</id>
+            <url>https://repo.adeo.no/repository/maven-snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>nav-nexus3-release</id>
+            <url>https://repo.adeo.no/repository/maven-releases</url>
+        </repository>
+        <repository>
+            <id>confluent</id>
+            <url>http://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>no.nav.altinnkanal</groupId>
@@ -170,18 +188,16 @@
                 <configuration>
                     <artifactItems>
                         <artifactItem>
-                            <groupId>no.nav.esb.nav</groupId>
-                            <artifactId>nav-tjeneste-arbeidsgiver</artifactId>
+                            <groupId>no.nav.esb</groupId>
+                            <artifactId>nav-arbeidsgiver-tjenestespesifikasjon</artifactId>
                             <version>2.0.0</version>
                             <type>zip</type>
-                            <classifier>wsexports</classifier>
                         </artifactItem>
                         <artifactItem>
-                            <groupId>no.nav.esb.nav</groupId>
-                            <artifactId>nav-tjeneste-behandleArbeidsgiver</artifactId>
+                            <groupId>no.nav.esb</groupId>
+                            <artifactId>nav-behandleArbeidsgiver-tjenestespesifikasjon</artifactId>
                             <version>1.0.0</version>
                             <type>zip</type>
-                            <classifier>wsexports</classifier>
                         </artifactItem>
                     </artifactItems>
                     <outputDirectory>${project.build.directory}/wsdl</outputDirectory>
