@@ -1,14 +1,13 @@
 package no.nav.altinn.xmlextractor;
 
-import io.reactivex.functions.Function;
-import no.nav.altinn.messages.ExtractedMessage;
-import no.nav.altinn.messages.IncomingMessage;
+import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.Sporingsdetalj;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -18,7 +17,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.GregorianCalendar;
 
-public class BankAccountXmlExtractor implements Function<IncomingMessage, ExtractedMessage<OppdaterKontonummerRequest>> {
+public class BankAccountXmlExtractor {
     private final XMLInputFactory xmlInputFactory = XMLInputFactory.newFactory();
 
     private static final String FORM_DATA_FIELD = "FormData";
@@ -93,8 +92,7 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
     }
 
     private String getText(XMLStreamReader reader) throws XMLStreamException {
-        int event = -1;
-        if (!reader.hasNext() || (event = reader.next()) != XMLEvent.CHARACTERS)
+        if (!reader.hasNext() || reader.next() != XMLEvent.CHARACTERS)
             return null;
         return reader.getText();
     }
@@ -120,12 +118,11 @@ public class BankAccountXmlExtractor implements Function<IncomingMessage, Extrac
         }
     }
 
-    @Override
-    public ExtractedMessage<OppdaterKontonummerRequest> apply(IncomingMessage incomingMessage) throws Exception {
-        OppdaterKontonummerRequest updateBankAccountRequest = buildSoapRequestFromAltinnPayload(new StringReader(incomingMessage.xmlMessage));
+    public OppdaterKontonummerRequest extract(ExternalAttachment externalAttachment) throws XMLStreamException, DatatypeConfigurationException {
+        OppdaterKontonummerRequest updateBankAccountRequest = buildSoapRequestFromAltinnPayload(new StringReader(externalAttachment.getBatch()));
 
-        updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(incomingMessage.externalAttachment.getArchRef());
+        updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
         updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(DatatypeFactory.newInstance().newXMLGregorianCalendar(new GregorianCalendar()));
-        return new ExtractedMessage<>(incomingMessage, updateBankAccountRequest);
+        return updateBankAccountRequest;
     }
 }

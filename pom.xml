@@ -11,7 +11,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <jetty.version>9.4.8.v20171121</jetty.version>
+        <!--<jetty.version>9.4.8.v20171121</jetty.version>-->
+        <jetty.version>9.2.22.v20170606</jetty.version>
         <prometheus.version>0.1.0</prometheus.version>
         <kafka.version>1.0.0</kafka.version>
         <cxf.version>3.2.1</cxf.version>
@@ -35,7 +36,7 @@
         </repository>
         <repository>
             <id>confluent</id>
-            <url>http://packages.confluent.io/maven/</url>
+            <url>https://packages.confluent.io/maven/</url>
         </repository>
     </repositories>
 
@@ -44,13 +45,6 @@
             <groupId>no.nav.altinnkanal</groupId>
             <artifactId>altinnkanal-schemas</artifactId>
             <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- RxJava -->
-        <dependency>
-            <groupId>io.reactivex.rxjava2</groupId>
-            <artifactId>rxjava</artifactId>
-            <version>2.1.9</version>
         </dependency>
 
         <!-- Web server -->
@@ -144,6 +138,19 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>no.nav.common</groupId>
+            <artifactId>embedded.kafka</artifactId>
+            <version>0.6.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.16.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

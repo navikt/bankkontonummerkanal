@@ -1,13 +1,12 @@
 package no.nav.altinn.validators;
 
 import io.prometheus.client.Gauge;
-import io.reactivex.functions.Predicate;
-import no.nav.altinn.messages.ExtractedMessage;
 import no.nav.altinn.route.BankAccountNumberRoute;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRequest;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.RelatertOrganisasjonSammendrag;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
+import no.nav.virksomhet.tjenester.arbeidsgiver.v2.HentOrganisasjonOrganisasjonIkkeFunnet;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import org.slf4j.Logger;
@@ -16,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-public class AARegOrganisationStructureValidator implements Predicate<ExtractedMessage<OppdaterKontonummerRequest>> {
+public class AARegOrganisationStructureValidator {
     private static final Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final Arbeidsgiver employer;
     public AARegOrganisationStructureValidator(Arbeidsgiver employer) {
@@ -56,9 +55,7 @@ public class AARegOrganisationStructureValidator implements Predicate<ExtractedM
                 .findFirst();
     }
 
-    @Override
-    public boolean test(ExtractedMessage<OppdaterKontonummerRequest> extractedMessage) throws Exception {
-        OppdaterKontonummerRequest updateBankAccountRequest = extractedMessage.updateRequest;
+    public boolean validate(OppdaterKontonummerRequest updateBankAccountRequest) throws HentOrganisasjonOrganisasjonIkkeFunnet {
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 

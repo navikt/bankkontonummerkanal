@@ -1,7 +1,5 @@
 package no.nav.altinn.xmlextractor;
 
-import no.nav.altinn.messages.ExtractedMessage;
-import no.nav.altinn.messages.IncomingMessage;
 import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import org.junit.Assert;
@@ -87,10 +85,7 @@ public class BankAccountXmlExtractorTest {
                 .setSc("2896")
                 .setSec("87").build();
 
-        IncomingMessage incomingMessage = new IncomingMessage(xmlMessage,externalAttachment);
-
-        ExtractedMessage extractedMessage = XML_EXTRACTOR.apply(incomingMessage);
-        OppdaterKontonummerRequest oppdaterKontonummerRequest = (OppdaterKontonummerRequest) extractedMessage.updateRequest;
+        OppdaterKontonummerRequest oppdaterKontonummerRequest = XML_EXTRACTOR.extract(externalAttachment);
 
         Assert.assertEquals("Check if ArchRef is transfered to TransaksjonsId", archRef, oppdaterKontonummerRequest.getSporingsdetalj().getTransaksjonsId());
     }
@@ -105,10 +100,7 @@ public class BankAccountXmlExtractorTest {
                 .setSc("2896")
                 .setSec("87").build();
 
-        IncomingMessage incomingMessage = new IncomingMessage(xmlMessage,externalAttachment);
-
-        ExtractedMessage extractedMessage = XML_EXTRACTOR.apply(incomingMessage);
-        OppdaterKontonummerRequest oppdaterKontonummerRequest = (OppdaterKontonummerRequest) extractedMessage.updateRequest;
+        OppdaterKontonummerRequest oppdaterKontonummerRequest = XML_EXTRACTOR.extract(externalAttachment);
 
         Assert.assertNotNull("Check if InnsendtTidspunkt is correct, we compare on the minute",
                 oppdaterKontonummerRequest.getSporingsdetalj().getInnsendtTidspunkt());
