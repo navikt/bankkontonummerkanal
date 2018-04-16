@@ -10,7 +10,6 @@ import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.frontend.ClientProxy;
-import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
@@ -23,6 +22,8 @@ import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.callback.CallbackHandler;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.Properties;
 
 public class BankAccountNumberChannel {
+    private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private Server server;
     private BankAccountNumberRoute route;
 
@@ -121,6 +123,7 @@ public class BankAccountNumberChannel {
     }
 
     public void shutdown() {
+        log.info("Doing a clean shutdown");
         route.stop();
         try {
             server.stop();

@@ -1,27 +1,21 @@
 package no.nav.altinn.route;
 
-import com.sun.tools.doclets.internal.toolkit.util.Extern;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import no.nav.altinn.validators.AARegOrganisationStructureValidator;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
-import no.nav.virksomhet.tjenester.arbeidsgiver.feil.v2.OrganisasjonIkkeFunnet;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.HentOrganisasjonOrganisasjonIkkeFunnet;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
-import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.OppdaterKontonummer;
-import org.apache.cxf.binding.soap.SoapFault;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.datatype.DatatypeConfigurationException;
-import javax.xml.soap.SOAPFault;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.ws.soap.SOAPFaultException;
 
@@ -90,7 +84,9 @@ public class BankAccountNumberRoute implements Runnable {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
             if (structureValidator.validate(updateRequest)) {
-                handleEmployer.oppdaterKontonummer(updateRequest);
+                try (Gauge.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
+                    handleEmployer.oppdaterKontonummer(updateRequest);
+                }
                 log.info("Successfully updated the account number for: {}",
                         keyValue("orgNumber", updateRequest.getOverordnetEnhet().getOrgNr()));
                 SUCESSFUL_MESSAGE_COUNTER.inc();
