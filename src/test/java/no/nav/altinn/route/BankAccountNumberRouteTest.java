@@ -90,8 +90,8 @@ public class BankAccountNumberRouteTest {
                 .thenThrow(new RuntimeException("Retry test 2"))
                 .thenReturn(DomainObjectUtils.defaultTestResponse());
 
-        verify(consumer, timeout(10000).times(3)).poll(anyLong());
         verify(consumer, timeout(10000).times(1)).commitSync();
+        verify(consumer, timeout(10000).times(3)).poll(anyLong());
         verify(handleEmployer, timeout(10000).times(1)).oppdaterKontonummer(any());
     }
 
@@ -119,8 +119,8 @@ public class BankAccountNumberRouteTest {
                 .thenThrow(new WebServiceException(new ConnectException("Connection refused (Connection refused)")))
                 .thenReturn(DomainObjectUtils.defaultTestResponse());
 
-        verify(consumer, timeout(10000).times(2)).poll(anyLong());
         verify(consumer, timeout(10000).times(1)).commitSync();
+        verify(consumer, timeout(10000).times(2)).poll(anyLong());
         verify(handleEmployer, timeout(10000)).oppdaterKontonummer(any());
     }
 }
