@@ -1,20 +1,29 @@
 package no.nav.altinn.route;
 
+import com.sun.tools.doclets.internal.toolkit.util.Extern;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import no.nav.altinn.validators.AARegOrganisationStructureValidator;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
+import no.nav.virksomhet.tjenester.arbeidsgiver.feil.v2.OrganisasjonIkkeFunnet;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.HentOrganisasjonOrganisasjonIkkeFunnet;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
+import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.OppdaterKontonummer;
 import org.apache.cxf.binding.soap.SoapFault;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.soap.SOAPFault;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.ws.soap.SOAPFaultException;
 
 import static net.logstash.logback.argument.StructuredArguments.*;
 
@@ -32,20 +41,25 @@ public class BankAccountNumberRoute implements Runnable {
     private final static Gauge AAREG_UPDATE_TIMER = Gauge.build().name("aareg_update_timer")
             .help("The time it takes to update the bank account number at aareg").create();
 
-    private final static long RETRY_INTERVAL = 5000;
-
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final BankAccountXmlExtractor xmlExtractor = new BankAccountXmlExtractor();
     private final AARegOrganisationStructureValidator structureValidator;
     private final BehandleArbeidsgiver handleEmployer;
     private final KafkaConsumer<String, ExternalAttachment> consumer;
+    private final long retryInterval;
+    private final int retryMaxRetries;
 
     private boolean running = true;
+    private int retryCount = 0;
+    private String lastArchiveReference;
 
-    public BankAccountNumberRoute(Arbeidsgiver employer, BehandleArbeidsgiver handleEmployer, KafkaConsumer<String, ExternalAttachment> consumer) {
+    public BankAccountNumberRoute(Arbeidsgiver employer, BehandleArbeidsgiver handleEmployer,
+                                  KafkaConsumer<String, ExternalAttachment> consumer, long retryInterval, int retryMaxRetries) {
         this.handleEmployer = handleEmployer;
         this.consumer = consumer;
         this.structureValidator = new AARegOrganisationStructureValidator(employer);
+        this.retryInterval = retryInterval;
+        this.retryMaxRetries = retryMaxRetries;
     }
 
     public void stop() {
@@ -55,57 +69,78 @@ public class BankAccountNumberRoute implements Runnable {
     @Override
     public void run() {
         while (running) {
+            log.info("Polling for new records");
             for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
-                ExternalAttachment externalAttachment = record.value();
-
-                Gauge.Timer fullRouteTimer = FULL_ROUTE_TIMER.startTimer();
-                INCOMING_MESSAGE_COUNTER.inc();
-                try {
-                    OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
-                    if (retry(5, () -> structureValidator.validate(updateRequest), HentOrganisasjonOrganisasjonIkkeFunnet.class)) {
-                        try (Gauge.Timer ignored = AAREG_UPDATE_TIMER.startTimer()) {
-                            retry(5, () -> {
-                                handleEmployer.oppdaterKontonummer(updateRequest);
-                                log.info("Successfully updated the account number for: {}", updateRequest.getOverordnetEnhet().getOrgNr());
-                                SUCESSFUL_MESSAGE_COUNTER.inc();
-                                return true;
-                            }, SoapFault.class);
-                        }
-                        fullRouteTimer.close();
-                    } else {
-                        log.error("Received message with invalid organisation. {}, {}",
-                                keyValue("archRef", externalAttachment.getArchRef()),
-                                keyValue("fullXmlMessage", externalAttachment.getBatch()));
-                        INVALID_ORG_STRUCTURE_COUNTER.inc();
-                    }
-                    consumer.commitSync();
-                } catch (WakeupException e) {
-                    log.warn("Received a wakeup exception, shutting down poller?", e);
-                } catch (Exception e) {
-                    log.error("Exception caught while updating account number in AAReg. {}, {}",
-                            keyValue("archRef", externalAttachment.getArchRef()),
-                            keyValue("fullXmlMessage", externalAttachment.getBatch()),
-                            e);
+                if (record.value().getArchRef().equals(lastArchiveReference)) {
+                    retryCount ++;
+                } else {
+                    retryCount = 0;
                 }
+                lastArchiveReference = record.value().getArchRef();
+                handleMessage(record);
             }
         }
         stop();
     }
 
-    private boolean retry(int times, RetryTask supplier, Class<? extends Exception> exception) throws Exception {
-        for (int retries = 0; retries < times - 1; retries++) {
-            try {
-                return supplier.apply();
-            } catch (Exception e) {
-                if (!exception.isInstance(e))
-                    throw e;
-            }
-        }
+    private void handleMessage(ConsumerRecord<String, ExternalAttachment> record) {
+        ExternalAttachment externalAttachment = record.value();
+        INCOMING_MESSAGE_COUNTER.inc();
+        try (Gauge.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
+            OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
-        return supplier.apply();
+            if (structureValidator.validate(updateRequest)) {
+                handleEmployer.oppdaterKontonummer(updateRequest);
+                log.info("Successfully updated the account number for: {}",
+                        keyValue("orgNumber", updateRequest.getOverordnetEnhet().getOrgNr()));
+                SUCESSFUL_MESSAGE_COUNTER.inc();
+                consumer.commitSync();
+            } else {
+                log.error("Received message with invalid organisation. {}, {}",
+                        keyValue("archRef", externalAttachment.getArchRef()),
+                        keyValue("fullXmlMessage", externalAttachment.getBatch()));
+                INVALID_ORG_STRUCTURE_COUNTER.inc();
+                consumer.commitSync();
+            }
+        } catch (SOAPFaultException | XMLStreamException | DatatypeConfigurationException | HentOrganisasjonOrganisasjonIkkeFunnet e) {
+            // XMLStreamException and DatatypeConfigurationException should not occur
+            // HentOrganisasjonOrganisasjonIkkeFunnet but might occur when schema is incomplete
+            // All these errors are non-recoverable, so we dump them into the log, for kibana to pick it up
+            // and send an notification
+            logFailedMessage(record, e);
+            consumer.commitSync();
+        } catch (Exception e) {
+            doRetry(record, e);
+        }
     }
 
-    private interface RetryTask {
-        boolean apply() throws Exception;
+    public void doRetry(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
+        if (retryCount < retryMaxRetries) {
+            log.warn("Exception caught while updating account number in AAReg, will retry in " + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}",
+                    keyValue("archRef", record.value().getArchRef()),
+                    keyValue("offset", record.offset()),
+                    keyValue("sendMail", false),
+                    e);
+
+            consumer.seek(new TopicPartition(record.topic(), record.partition()), record.offset());
+
+            try {
+                Thread.sleep(retryInterval);
+            } catch (InterruptedException interruptedException) {
+                log.error("Interrupted while waiting to retry", interruptedException);
+            }
+        } else {
+            logFailedMessage(record, e);
+            consumer.commitSync();
+        }
+    }
+
+    public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
+        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}",
+                keyValue("archRef", record.value().getArchRef()),
+                keyValue("offset", record.offset()),
+                keyValue("sendMail", true),
+                keyValue("fullXmlMessage", record.value().getBatch()),
+                e);
     }
 }

@@ -7,8 +7,13 @@ import no.nav.altinn.route.BankAccountNumberRoute;
 import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
+import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.ext.logging.LoggingFeature;
+import org.apache.cxf.frontend.ClientProxy;
+import org.apache.cxf.jaxrs.client.WebClient;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
+import org.apache.cxf.transport.http.HTTPConduit;
+import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.wss4j.common.ext.WSPasswordCallback;
@@ -44,7 +49,7 @@ public class BankAccountNumberChannel {
 
 
     public void bootstrap(KafkaConsumer<String, ExternalAttachment> consumer, EnvironmentConfig environmentConfig) {
-        server = createHTTPServer(Integer.parseInt(environmentConfig.serverPort));
+        server = createHTTPServer(environmentConfig.serverPort);
         try {
             server.start();
         } catch (Exception e) {
@@ -69,6 +74,7 @@ public class BankAccountNumberChannel {
         arbeidsGiverFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         arbeidsGiverFactory.setServiceClass(Arbeidsgiver.class);
         Arbeidsgiver employer = (Arbeidsgiver) arbeidsGiverFactory.create();
+        configureTimeout(employer, environmentConfig.retryMaxWSConnectionTimeout, environmentConfig.retryMaxWSReceiveTimeout);
 
         // Configure then endpoint used for oppdaterKontonummer
         JaxWsProxyFactoryBean handleEmployerFactory = new JaxWsProxyFactoryBean();
@@ -77,13 +83,24 @@ public class BankAccountNumberChannel {
         handleEmployerFactory.setOutInterceptors(Collections.singletonList(passwordOutInterceptor));
         handleEmployerFactory.setServiceClass(BehandleArbeidsgiver.class);
         BehandleArbeidsgiver handleEmployer = (BehandleArbeidsgiver) handleEmployerFactory.create();
+        configureTimeout(handleEmployer, environmentConfig.retryMaxWSConnectionTimeout, environmentConfig.retryMaxWSReceiveTimeout);
 
         consumer.subscribe(Collections.singletonList(environmentConfig.bankaccountNumberChangedTopic));
-        route = new BankAccountNumberRoute(employer, handleEmployer, consumer);
+        route = new BankAccountNumberRoute(employer, handleEmployer, consumer, environmentConfig.retryInterval,
+                environmentConfig.retryMaxRetries);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
         route.run();
+    }
+
+    private void configureTimeout(Object service, long connectionTimeout, long receiveTimeout) {
+        Client client = ClientProxy.getClient(service);
+        HTTPConduit conduit = (HTTPConduit) client.getConduit();
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setConnectionTimeout(connectionTimeout);
+        httpClientPolicy.setReceiveTimeout(receiveTimeout);
+        conduit.setClient(httpClientPolicy);
     }
 
     public Server createHTTPServer(int port) {
