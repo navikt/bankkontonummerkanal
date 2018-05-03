@@ -37,7 +37,7 @@ pipeline {
         stage('docker build') {
             steps {
                 script {
-                    docker.withRegistry('https://docker.adeo.no:5000/') {
+                    docker.withRegistry('https://repo.adeo.no:5443/') {
                         def image = docker.build("integrasjon/${applicationFullName}", "--build-arg GIT_COMMIT_ID=${commitHashShort} .")
                         image.push()
                         image.push 'latest'
