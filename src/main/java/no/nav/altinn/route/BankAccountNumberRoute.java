@@ -27,13 +27,13 @@ public class BankAccountNumberRoute implements Runnable {
     private final static Counter SUCESSFUL_MESSAGE_COUNTER = Counter.build().name("successful_message_counter")
             .help("Counts the number of successful messages transferred to AAReg").register();
     private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build().name("invalid_org_strcture_count")
-            .help("Counts the number of messages that failed because the organization structure was invalid").create();
+            .help("Counts the number of messages that failed because the organization structure was invalid").register();
     private final static Gauge FULL_ROUTE_TIMER = Gauge.build().name("full_route_timer")
-            .help("The time it takes a message to go through the full route").create();
+            .help("The time it takes a message to go through the full route").register();
     public final static Gauge AAREG_QUERY_TIMER = Gauge.build().name("aareg_query_timer")
-            .help("The time it takes to query aareg for the organisation information").create();
+            .help("The time it takes to query aareg for the organisation information").register();
     private final static Gauge AAREG_UPDATE_TIMER = Gauge.build().name("aareg_update_timer")
-            .help("The time it takes to update the bank account number at aareg").create();
+            .help("The time it takes to update the bank account number at aareg").register();
 
     private final static Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final BankAccountXmlExtractor xmlExtractor = new BankAccountXmlExtractor();
