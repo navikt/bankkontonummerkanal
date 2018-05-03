@@ -120,7 +120,7 @@ public class BankAccountNumberRouteTest {
                 .thenReturn(DomainObjectUtils.defaultTestResponse());
 
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(consumer, timeout(10000).times(2)).poll(anyLong());
+        verify(consumer, timeout(10000).atLeast(2)).poll(anyLong());
         verify(handleEmployer, timeout(10000)).oppdaterKontonummer(any());
     }
 }
