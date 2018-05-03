@@ -13,6 +13,8 @@ public class EnvironmentConfig {
     public final int retryMaxRetries;
     public final long retryMaxWSConnectionTimeout;
     public final long retryMaxWSReceiveTimeout;
+    public final String srvbankkontonummerUsername;
+    public final String srvbankkontonummerPassword;
 
     public EnvironmentConfig() {
         this.aaregHentOrganisasjonEndpointURL = getVariable(AAREG_HENT_ORGANISASJON_ENDPOINTURL);
@@ -25,11 +27,14 @@ public class EnvironmentConfig {
         this.retryMaxRetries = Integer.parseInt(getVariable(RETRY_MAX_RETRIES));
         this.retryMaxWSConnectionTimeout = Long.parseLong(getVariable(RETRY_MAX_WS_CONNECTION_TIMEOUT));
         this.retryMaxWSReceiveTimeout = Integer.parseInt(getVariable(RETRY_MAX_WS_RECEIVE_TIMEOUT));
+        this.srvbankkontonummerUsername = getVariable(SRVBANKKONTONUMMER_USERNAME);
+        this.srvbankkontonummerPassword = getVariable(SRVBANKKONTONUMMER_PASSWORD);
     }
 
     public EnvironmentConfig(String hentOrgNrUrl, String oppdaterKontnrUrl, String username, String password,
                              int serverPort, String bankaccountNumberChangedTopic, int retryInterval,
-                             int retryMaxRetries, int retryMaxWSConnectionTimeout, int retryMaxWSReceiveTimeout) {
+                             int retryMaxRetries, int retryMaxWSConnectionTimeout, int retryMaxWSReceiveTimeout,
+                             String srvbankkontonummerUsername, String srvbankkontonummerPassword) {
         this.aaregHentOrganisasjonEndpointURL = hentOrgNrUrl;
         this.aaregOppdaterKontonummerEndpointURL = oppdaterKontnrUrl;
         this.aaregWSUsername = username;
@@ -40,6 +45,8 @@ public class EnvironmentConfig {
         this.retryMaxRetries = retryMaxRetries;
         this.retryMaxWSConnectionTimeout = retryMaxWSConnectionTimeout;
         this.retryMaxWSReceiveTimeout = retryMaxWSReceiveTimeout;
+        this.srvbankkontonummerUsername = srvbankkontonummerUsername;
+        this.srvbankkontonummerPassword = srvbankkontonummerPassword;
     }
 
     public String getVariable(Key key) {
@@ -53,6 +60,8 @@ public class EnvironmentConfig {
     }
 
     public enum Key {
+        SRVBANKKONTONUMMER_USERNAME,
+        SRVBANKKONTONUMMER_PASSWORD,
         AAREG_HENT_ORGANISASJON_ENDPOINTURL,
         AAREG_OPPDATER_KONTONUMMER_ENDPOINTURL,
         AAREGPOLICYUSER_USERNAME,

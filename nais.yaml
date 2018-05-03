@@ -37,3 +37,5 @@ fasitResources:
     resourceType: webserviceendpoint
   - alias: AARegPolicyUser
     resourceType: credential
+  - alias: srvbankkontonummerkanal
+    resourceType: credential

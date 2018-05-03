@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        FASIT_ENV = 't0'
+        FASIT_ENV = 't4'
         ZONE = 'fss'
         APPLICATION_NAMESPACE = 'default'
         APPLICATION_FASIT_NAME = 'bankkontonummerkanal'
