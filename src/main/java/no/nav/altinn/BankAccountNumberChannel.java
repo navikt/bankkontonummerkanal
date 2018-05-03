@@ -45,7 +45,7 @@ public class BankAccountNumberChannel {
         kafkaProperties.load(BankAccountNumberChannel.class.getResourceAsStream("/kafka_consumer.properties"));
         kafkaProperties.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required " +
                 "username=\"" + environmentConfig.srvbankkontonummerUsername + "\" " +
-                "password=\"" + environmentConfig.srvbankkontonummerPassword + ";");
+                "password=\"" + environmentConfig.srvbankkontonummerPassword + "\";");
 
         try (KafkaConsumer<String, ExternalAttachment> kafkaConsumer = new KafkaConsumer<>(kafkaProperties)) {
             new BankAccountNumberChannel().bootstrap(kafkaConsumer, environmentConfig);

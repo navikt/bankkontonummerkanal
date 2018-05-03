@@ -27,8 +27,8 @@ public class EnvironmentConfig {
         this.retryMaxRetries = Integer.parseInt(getVariable(RETRY_MAX_RETRIES));
         this.retryMaxWSConnectionTimeout = Long.parseLong(getVariable(RETRY_MAX_WS_CONNECTION_TIMEOUT));
         this.retryMaxWSReceiveTimeout = Integer.parseInt(getVariable(RETRY_MAX_WS_RECEIVE_TIMEOUT));
-        this.srvbankkontonummerUsername = getVariable(SRVBANKKONTONUMMER_USERNAME);
-        this.srvbankkontonummerPassword = getVariable(SRVBANKKONTONUMMER_PASSWORD);
+        this.srvbankkontonummerUsername = getVariable(SRVBANKKONTONUMMERKANAL_USERNAME);
+        this.srvbankkontonummerPassword = getVariable(SRVBANKKONTONUMMERKANAL_PASSWORD);
     }
 
     public EnvironmentConfig(String hentOrgNrUrl, String oppdaterKontnrUrl, String username, String password,
@@ -60,8 +60,8 @@ public class EnvironmentConfig {
     }
 
     public enum Key {
-        SRVBANKKONTONUMMER_USERNAME,
-        SRVBANKKONTONUMMER_PASSWORD,
+        SRVBANKKONTONUMMERKANAL_USERNAME,
+        SRVBANKKONTONUMMERKANAL_PASSWORD,
         AAREG_HENT_ORGANISASJON_ENDPOINTURL,
         AAREG_OPPDATER_KONTONUMMER_ENDPOINTURL,
         AAREGPOLICYUSER_USERNAME,
