@@ -92,9 +92,12 @@ public class BankAccountNumberRoute implements Runnable {
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
-                log.error("Received message with invalid organisation. {}, {}",
-                        keyValue("archRef", externalAttachment.getArchRef()),
-                        keyValue("fullXmlMessage", externalAttachment.getBatch()));
+                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
+                        keyValue("archRef", record.value().getArchRef()),
+                        keyValue("offset", record.offset()),
+                        keyValue("partition", record.partition()),
+                        keyValue("sendMail", true),
+                        keyValue("fullXmlMessage", record.value().getBatch()));
                 INVALID_ORG_STRUCTURE_COUNTER.inc();
                 consumer.commitSync();
             }
@@ -112,9 +115,10 @@ public class BankAccountNumberRoute implements Runnable {
 
     public void doRetry(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
         if (retryCount < retryMaxRetries) {
-            log.warn("Exception caught while updating account number in AAReg, will retry in " + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}",
+            log.warn("Exception caught while updating account number in AAReg, will retry in " + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
                     keyValue("archRef", record.value().getArchRef()),
                     keyValue("offset", record.offset()),
+                    keyValue("partition", record.partition()),
                     keyValue("sendMail", false),
                     e);
 
@@ -132,9 +136,10 @@ public class BankAccountNumberRoute implements Runnable {
     }
 
     public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
-        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}",
+        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
                 keyValue("archRef", record.value().getArchRef()),
                 keyValue("offset", record.offset()),
+                keyValue("partition", record.partition()),
                 keyValue("sendMail", true),
                 keyValue("fullXmlMessage", record.value().getBatch()),
                 e);
