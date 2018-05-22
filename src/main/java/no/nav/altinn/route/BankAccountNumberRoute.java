@@ -26,6 +26,8 @@ public class BankAccountNumberRoute implements Runnable {
             .help("Counts the number of incoming messages").register();
     private final static Counter SUCESSFUL_MESSAGE_COUNTER = Counter.build().name("successful_message_counter")
             .help("Counts the number of successful messages transferred to AAReg").register();
+    private final static Counter UNSUCESSFUL_MESSAGE_COUNTER = Counter.build().name("unsuccessful_message_counter")
+            .help("Counts the number of unsuccessful messages").register();
     private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build().name("invalid_org_strcture_count")
             .help("Counts the number of messages that failed because the organization structure was invalid").register();
     private final static Gauge FULL_ROUTE_TIMER = Gauge.build().name("full_route_timer")
@@ -108,6 +110,7 @@ public class BankAccountNumberRoute implements Runnable {
             // and send an notification
             logFailedMessage(record, e);
             consumer.commitSync();
+            UNSUCESSFUL_MESSAGE_COUNTER.inc();
         } catch (Exception e) {
             doRetry(record, e);
         }
