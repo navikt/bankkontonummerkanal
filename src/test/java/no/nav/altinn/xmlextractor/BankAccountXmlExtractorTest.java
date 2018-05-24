@@ -80,10 +80,10 @@ public class BankAccountXmlExtractorTest {
 
         String archRef= "77424064";
         ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
-                .setArchRef(archRef)
+                .setArchiveReference(archRef)
                 .setBatch(xmlMessage)
-                .setSc("2896")
-                .setSec("87").build();
+                .setServiceCode("2896")
+                .setServiceEditionCode("87").build();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = XML_EXTRACTOR.extract(externalAttachment);
 
@@ -95,10 +95,10 @@ public class BankAccountXmlExtractorTest {
         String xmlMessage = readXml("/xmlextractor/message.xml");
 
         ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
-                .setArchRef("77424064")
+                .setArchiveReference("77424064")
                 .setBatch(xmlMessage)
-                .setSc("2896")
-                .setSec("87").build();
+                .setServiceCode("2896")
+                .setServiceEditionCode("87").build();
 
         OppdaterKontonummerRequest oppdaterKontonummerRequest = XML_EXTRACTOR.extract(externalAttachment);
 

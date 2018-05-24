@@ -67,12 +67,12 @@ public class BankAccountNumberRoute implements Runnable {
         while (running) {
             log.debug("Polling for new records");
             for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
-                if (record.value().getArchRef().equals(lastArchiveReference)) {
+                if (record.value().getArchiveReference().equals(lastArchiveReference)) {
                     retryCount ++;
                 } else {
                     retryCount = 0;
                 }
-                lastArchiveReference = record.value().getArchRef();
+                lastArchiveReference = record.value().getArchiveReference();
                 handleMessage(record);
             }
         }
@@ -95,7 +95,7 @@ public class BankAccountNumberRoute implements Runnable {
                 consumer.commitSync();
             } else {
                 log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
-                        keyValue("archRef", record.value().getArchRef()),
+                        keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("offset", record.offset()),
                         keyValue("partition", record.partition()),
                         keyValue("sendMail", true),
@@ -119,7 +119,7 @@ public class BankAccountNumberRoute implements Runnable {
     public void doRetry(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
         if (retryCount < retryMaxRetries) {
             log.warn("Exception caught while updating account number in AAReg, will retry in " + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
-                    keyValue("archRef", record.value().getArchRef()),
+                    keyValue("archRef", record.value().getArchiveReference()),
                     keyValue("offset", record.offset()),
                     keyValue("partition", record.partition()),
                     keyValue("sendMail", false),
@@ -140,7 +140,7 @@ public class BankAccountNumberRoute implements Runnable {
 
     public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
         log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
-                keyValue("archRef", record.value().getArchRef()),
+                keyValue("archRef", record.value().getArchiveReference()),
                 keyValue("offset", record.offset()),
                 keyValue("partition", record.partition()),
                 keyValue("sendMail", true),

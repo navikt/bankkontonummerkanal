@@ -74,9 +74,9 @@ public class TestUtil {
 
     public static ExternalAttachment defaultExternalAttachment() throws IOException {
         return ExternalAttachment.newBuilder()
-                .setArchRef(UUID.randomUUID().toString())
-                .setSc("a")
-                .setSec("b")
+                .setArchiveReference(UUID.randomUUID().toString())
+                .setServiceCode("a")
+                .setServiceEditionCode("b")
                 .setBatch(readXml("/xmlextractor/message.xml"))
                 .build();
     }

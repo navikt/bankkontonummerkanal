@@ -121,7 +121,7 @@ public class BankAccountXmlExtractor {
     public OppdaterKontonummerRequest extract(ExternalAttachment externalAttachment) throws XMLStreamException, DatatypeConfigurationException {
         OppdaterKontonummerRequest updateBankAccountRequest = buildSoapRequestFromAltinnPayload(new StringReader(externalAttachment.getBatch()));
 
-        updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchRef());
+        updateBankAccountRequest.getSporingsdetalj().setTransaksjonsId(externalAttachment.getArchiveReference());
         updateBankAccountRequest.getSporingsdetalj().setInnsendtTidspunkt(DatatypeFactory.newInstance().newXMLGregorianCalendar(new GregorianCalendar()));
         return updateBankAccountRequest;
     }

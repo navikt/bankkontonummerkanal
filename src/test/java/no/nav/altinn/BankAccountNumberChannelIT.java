@@ -96,9 +96,9 @@ public class BankAccountNumberChannelIT {
         when(arbeidsgiver.hentOrganisasjon(any())).thenReturn(defaultTestResponse());
 
         ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
-                .setArchRef("TestArchRef")
-                .setSc("a")
-                .setSec("b")
+                .setArchiveReference("TestArchRef")
+                .setServiceCode("a")
+                .setServiceEditionCode("b")
                 .setBatch(readXml("/xmlextractor/message.xml"))
                 .build();
 
@@ -113,9 +113,9 @@ public class BankAccountNumberChannelIT {
         when(arbeidsgiver.hentOrganisasjon(any())).thenReturn(defaultTestResponse());
 
         ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
-                .setArchRef("TestArchRef")
-                .setSc("a")
-                .setSec("b")
+                .setArchiveReference("TestArchRef")
+                .setServiceCode("a")
+                .setServiceEditionCode("b")
                 .setBatch(readXml("/xmlextractor/message_with_two_daughter_organizations.xml"))
                 .build();
 
@@ -132,9 +132,9 @@ public class BankAccountNumberChannelIT {
         when(arbeidsgiver.hentOrganisasjon(any())).thenThrow(new RuntimeException("Invalid modulus check"));
 
         ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
-                .setArchRef("TestArchRef")
-                .setSc("a")
-                .setSec("b")
+                .setArchiveReference("TestArchRef")
+                .setServiceCode("a")
+                .setServiceEditionCode("b")
                 .setBatch(readXml("/xmlextractor/message_with_two_daughter_organizations.xml"))
                 .build();
 
