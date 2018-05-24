@@ -89,7 +89,8 @@ public class BankAccountNumberRoute implements Runnable {
                 try (Gauge.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
                     handleEmployer.oppdaterKontonummer(updateRequest);
                 }
-                log.info("Successfully updated the account number for: {}",
+                log.info("Successfully updated the account number for: {}, {}",
+                        keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("orgNumber", updateRequest.getOverordnetEnhet().getOrgNr()));
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
