@@ -103,11 +103,7 @@ public class BankAccountXmlExtractor {
             while (reader.hasNext()) {
                 if (reader.next() == XMLEvent.START_ELEMENT) {
                     if (FORM_DATA_FIELD.equals(reader.getLocalName())) {
-                        getText(reader);
-                        int event = -1;
-                        if (!reader.hasNext() || (event = reader.next()) != XMLEvent.CDATA)
-                            throw new RuntimeException("Expected CDATA, got " + event);
-                        return reader.getText();
+                        return reader.getElementText();
                     }
                 }
             }
