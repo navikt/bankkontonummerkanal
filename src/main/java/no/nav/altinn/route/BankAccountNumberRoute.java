@@ -108,7 +108,7 @@ public class BankAccountNumberRoute implements Runnable {
         try (Gauge.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
-            AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest);
+            AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest, record.value().getArchiveReference());
             if (result == AARegOrganisationStructureValidator.Result.Ok) {
                 try (Gauge.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
                     updateRequest.getUnderliggendeBedriftListe()

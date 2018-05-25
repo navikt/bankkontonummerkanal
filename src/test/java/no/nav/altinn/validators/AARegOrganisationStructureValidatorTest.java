@@ -17,7 +17,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.Ok, validateOrganizationStructure(response, request));
+        assertEquals(Result.Ok, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -27,7 +27,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request));
+        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request, "ARtest"));
     }
 
 
@@ -38,7 +38,7 @@ public class AARegOrganisationStructureValidatorTest {
                 buildRelatedOrganization("987654322", "234", "0"));
 
         OppdaterKontonummerRequest request = unmarshallXML("/xmlextractor/message_with_daughter_organization_status_code1.xml");
-        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request));
+        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -49,7 +49,7 @@ public class AARegOrganisationStructureValidatorTest {
                 buildOrganization("987654321", "123", "1"),
                 buildRelatedOrganization("987654321", "234", "1"));
 
-        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request));
+        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -58,7 +58,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.MissingHovedenhetKontonummer, validateOrganizationStructure(response, request));
+        assertEquals(Result.MissingHovedenhetKontonummer, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -67,7 +67,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.MissingHovedenhetOrgNr, validateOrganizationStructure(response, request));
+        assertEquals(Result.MissingHovedenhetOrgNr, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.Ok, validateOrganizationStructure(response, request));
+        assertEquals(Result.Ok, validateOrganizationStructure(response, request, "ARtest"));
     }
 
     @Test
@@ -85,6 +85,6 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.MissingUnderenhetOrgNr, validateOrganizationStructure(response, request));
+        assertEquals(Result.MissingUnderenhetOrgNr, validateOrganizationStructure(response, request, "ARtest"));
     }
 }

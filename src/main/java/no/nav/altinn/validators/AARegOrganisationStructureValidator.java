@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 public class AARegOrganisationStructureValidator {
     private static final Logger log = LoggerFactory.getLogger(BankAccountNumberRoute.class);
     private final Arbeidsgiver employer;
@@ -22,7 +24,7 @@ public class AARegOrganisationStructureValidator {
         this.employer = employer;
     }
 
-    public static Result validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update) {
+    public static Result validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update, String archiveReference) {
         if (update.getOverordnetEnhet().getOrgNr() == null || update.getOverordnetEnhet().getOrgNr().isEmpty()) {
             return Result.MissingHovedenhetOrgNr;
         }
@@ -37,8 +39,13 @@ public class AARegOrganisationStructureValidator {
 
             Optional<RelatertOrganisasjonSammendrag> daughterOrganization = findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
 
-            if (!daughterOrganization.isPresent())
+            if (!daughterOrganization.isPresent()) {
+                log.warn("Daughter organization with organization number {} not found in the parent organization {} {}",
+                        keyValue("daughterOrgNr", bankAccountUpdate.getOrgNr()),
+                        keyValue("orgNr", update.getOverordnetEnhet().getOrgNr()),
+                        keyValue("archRef", archiveReference));
                 return Result.InvalidStructure;
+            }
         }
         return Result.Ok;
 
@@ -51,7 +58,7 @@ public class AARegOrganisationStructureValidator {
                 .findFirst();
     }
 
-    public Result validate(OppdaterKontonummerRequest updateBankAccountRequest) throws HentOrganisasjonOrganisasjonIkkeFunnet {
+    public Result validate(OppdaterKontonummerRequest updateBankAccountRequest, String archiveReference) throws HentOrganisasjonOrganisasjonIkkeFunnet {
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 
@@ -61,7 +68,7 @@ public class AARegOrganisationStructureValidator {
             getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
 
             HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
-            return validateOrganizationStructure(organisationResponse, updateBankAccountRequest);
+            return validateOrganizationStructure(organisationResponse, updateBankAccountRequest, archiveReference);
         }
     }
 
