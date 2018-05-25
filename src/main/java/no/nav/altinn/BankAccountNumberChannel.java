@@ -114,7 +114,7 @@ public class BankAccountNumberChannel {
         HandlerCollection handlerCollection = new HandlerCollection();
 
         ServletContextHandler prometheusServletHandler = new ServletContextHandler();
-        prometheusServletHandler.setContextPath("/metrics");
+        prometheusServletHandler.setContextPath("/prometheus");
         prometheusServletHandler.addServlet(MetricsServlet.class, "/");
 
         handlerCollection.setHandlers(new Handler[] { prometheusServletHandler, new SelfcheckHandler() });
