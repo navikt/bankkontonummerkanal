@@ -38,7 +38,7 @@ public class AARegOrganisationStructureValidatorTest {
                 buildRelatedOrganization("987654322", "234", "0"));
 
         OppdaterKontonummerRequest request = unmarshallXML("/xmlextractor/message_with_daughter_organization_status_code1.xml");
-        assertEquals(Result.StatusCodeIs0, validateOrganizationStructure(response, request));
+        assertEquals(Result.InvalidStructure, validateOrganizationStructure(response, request));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class AARegOrganisationStructureValidatorTest {
 
         HentOrganisasjonResponse response = defaultTestResponse();
 
-        assertEquals(Result.MissingUnderenhetKontonummer, validateOrganizationStructure(response, request));
+        assertEquals(Result.Ok, validateOrganizationStructure(response, request));
     }
 
     @Test

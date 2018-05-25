@@ -34,16 +34,11 @@ public class AARegOrganisationStructureValidator {
             if (bankAccountUpdate.getOrgNr() == null || bankAccountUpdate.getOrgNr().trim().isEmpty()) {
                 return Result.MissingUnderenhetOrgNr;
             }
-            if (bankAccountUpdate.getKontonummer() == null || bankAccountUpdate.getKontonummer().isEmpty()) {
-                return Result.MissingUnderenhetKontonummer;
-            }
 
             Optional<RelatertOrganisasjonSammendrag> daughterOrganization = findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
 
             if (!daughterOrganization.isPresent())
                 return Result.InvalidStructure;
-            if (!daughterOrganization.get().getStatus().getKode().equals("1"))
-                return Result.StatusCodeIs0;
         }
         return Result.Ok;
 
@@ -52,6 +47,7 @@ public class AARegOrganisationStructureValidator {
     private static Optional<RelatertOrganisasjonSammendrag> findDaughterOrganization(List<RelatertOrganisasjonSammendrag> daughterOrganizations, String orgNumber) {
         return daughterOrganizations.stream()
                 .filter(org -> org.getOrgNr().equals(orgNumber))
+                .filter(org -> org.getStatus().getKode().equals("1"))
                 .findFirst();
     }
 
@@ -73,9 +69,7 @@ public class AARegOrganisationStructureValidator {
         Ok,
         InvalidStructure,
         MissingHovedenhetKontonummer,
-        MissingUnderenhetKontonummer,
         MissingHovedenhetOrgNr,
-        MissingUnderenhetOrgNr,
-        StatusCodeIs0
+        MissingUnderenhetOrgNr
     }
 }
