@@ -85,7 +85,8 @@ public class BankAccountNumberRoute implements Runnable {
         try (Gauge.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
-            if (structureValidator.validate(updateRequest)) {
+            AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest);
+            if (result == AARegOrganisationStructureValidator.Result.Ok) {
                 try (Gauge.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
                     handleEmployer.oppdaterKontonummer(updateRequest);
                 }
@@ -95,7 +96,8 @@ public class BankAccountNumberRoute implements Runnable {
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
-                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
+                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}, {}",
+                        keyValue("reason", result.name()),
                         keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("offset", record.offset()),
                         keyValue("partition", record.partition()),

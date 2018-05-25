@@ -55,7 +55,7 @@ public class AARegOrganisationStructureValidator {
                 .findFirst();
     }
 
-    public boolean validate(OppdaterKontonummerRequest updateBankAccountRequest) throws HentOrganisasjonOrganisasjonIkkeFunnet {
+    public Result validate(OppdaterKontonummerRequest updateBankAccountRequest) throws HentOrganisasjonOrganisasjonIkkeFunnet {
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 
@@ -65,7 +65,7 @@ public class AARegOrganisationStructureValidator {
             getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
 
             HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
-            return validateOrganizationStructure(organisationResponse, updateBankAccountRequest) == Result.Ok;
+            return validateOrganizationStructure(organisationResponse, updateBankAccountRequest);
         }
     }
 
