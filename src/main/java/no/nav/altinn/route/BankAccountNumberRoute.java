@@ -2,6 +2,7 @@ package no.nav.altinn.route;
 
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
+import io.prometheus.client.hotspot.DefaultExports;
 import no.nav.altinn.validators.AARegOrganisationStructureValidator;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
@@ -88,6 +89,7 @@ public class BankAccountNumberRoute implements Runnable {
     @Override
     public void run() {
         while (running) {
+            DefaultExports.initialize();
             log.debug("Polling for new records");
             for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
                 if (record.value().getArchiveReference().equals(lastArchiveReference)) {
