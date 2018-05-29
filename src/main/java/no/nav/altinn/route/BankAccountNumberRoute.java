@@ -1,8 +1,7 @@
 package no.nav.altinn.route;
 
 import io.prometheus.client.Counter;
-import io.prometheus.client.Gauge;
-import io.prometheus.client.hotspot.DefaultExports;
+import io.prometheus.client.Summary;
 import no.nav.altinn.validators.AARegOrganisationStructureValidator;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
@@ -45,17 +44,17 @@ public class BankAccountNumberRoute implements Runnable {
             .name("invalid_org_strcture_count")
             .help("Counts the number of messages that failed because the organization structure was invalid")
             .register();
-    private final static Gauge FULL_ROUTE_TIMER = Gauge.build()
+    private final static Summary FULL_ROUTE_TIMER = Summary.build()
             .namespace(METRICS_NS)
             .name("full_route_timer")
             .help("The time it takes a message to go through the full route")
             .register();
-    public final static Gauge AAREG_QUERY_TIMER = Gauge.build()
+    public final static Summary AAREG_QUERY_TIMER = Summary.build()
             .namespace(METRICS_NS)
             .name("aareg_query_timer")
             .help("The time it takes to query aareg for the organisation information")
             .register();
-    private final static Gauge AAREG_UPDATE_TIMER = Gauge.build()
+    private final static Summary AAREG_UPDATE_TIMER = Summary.build()
             .namespace(METRICS_NS)
             .name("aareg_update_timer")
             .help("The time it takes to update the bank account number at aareg")
@@ -106,16 +105,18 @@ public class BankAccountNumberRoute implements Runnable {
     private void handleMessage(ConsumerRecord<String, ExternalAttachment> record) {
         ExternalAttachment externalAttachment = record.value();
         INCOMING_MESSAGE_COUNTER.inc();
-        try (Gauge.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
+        try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
             AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest, record.value().getArchiveReference());
             if (result == AARegOrganisationStructureValidator.Result.Ok) {
-                try (Gauge.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
+                try (Summary.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
                     updateRequest.getUnderliggendeBedriftListe()
                             .removeIf(b -> b.getKontonummer() == null || b.getKontonummer().isEmpty());
                     handleEmployer.oppdaterKontonummer(updateRequest);
+                    ignoredAaregUpdateTimer.observeDuration();
                 }
+                ignoredFullRouteTimer.observeDuration();
                 log.info("Successfully updated the account number for: {}, {}",
                         keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("orgNumber", updateRequest.getOverordnetEnhet().getOrgNr()));

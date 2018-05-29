@@ -1,6 +1,7 @@
 package no.nav.altinn.validators;
 
 import io.prometheus.client.Gauge;
+import io.prometheus.client.Summary;
 import no.nav.altinn.route.BankAccountNumberRoute;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRequest;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
@@ -62,12 +63,13 @@ public class AARegOrganisationStructureValidator {
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 
-        try (Gauge.Timer queryTimer = BankAccountNumberRoute.AAREG_QUERY_TIMER.startTimer()) {
+        try (Summary.Timer aaregQueryTimer = BankAccountNumberRoute.AAREG_QUERY_TIMER.startTimer()) {
             HentOrganisasjonRequest getOrganisationRequest = new HentOrganisasjonRequest();
             getOrganisationRequest.setOrgNr(updateBankAccountRequest.getOverordnetEnhet().getOrgNr());
             getOrganisationRequest.setHentRelaterteOrganisasjoner(true);
 
             HentOrganisasjonResponse organisationResponse = employer.hentOrganisasjon(getOrganisationRequest);
+            aaregQueryTimer.observeDuration();
             return validateOrganizationStructure(organisationResponse, updateBankAccountRequest, archiveReference);
         }
     }
