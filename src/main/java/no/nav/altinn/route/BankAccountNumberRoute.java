@@ -89,7 +89,6 @@ public class BankAccountNumberRoute implements Runnable {
     @Override
     public void run() {
         while (running) {
-            DefaultExports.initialize();
             log.debug("Polling for new records");
             for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
                 if (record.value().getArchiveReference().equals(lastArchiveReference)) {

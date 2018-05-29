@@ -1,6 +1,7 @@
 package no.nav.altinn;
 
 import io.prometheus.client.exporter.MetricsServlet;
+import io.prometheus.client.hotspot.DefaultExports;
 import no.nav.altinn.config.EnvironmentConfig;
 import no.nav.altinn.endpoints.SelfcheckHandler;
 import no.nav.altinn.route.BankAccountNumberRoute;
@@ -38,6 +39,7 @@ public class BankAccountNumberChannel {
 
 
     public static void main(String[] args) throws IOException {
+        DefaultExports.initialize();
         // Read config
         Properties kafkaProperties = new Properties();
 
