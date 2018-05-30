@@ -4,7 +4,6 @@ import no.nav.altinn.utils.DomainObjectUtils;
 import no.nav.altinn.utils.TestUtil;
 import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.common.KafkaEnvironment;
-import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonResponse;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -15,16 +14,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.xml.namespace.QName;
 import javax.xml.soap.SOAPFactory;
-import javax.xml.soap.SOAPFault;
 import javax.xml.ws.WebServiceException;
 import javax.xml.ws.soap.SOAPFaultException;
-import java.io.IOException;
 import java.net.ConnectException;
 import java.util.Collections;
 
-import static no.nav.altinn.utils.XmlUtils.readXml;
 import static org.mockito.Mockito.*;
 
 public class BankAccountNumberRouteTest {

@@ -73,7 +73,8 @@ public class BankAccountNumberRoute implements Runnable {
     private String lastArchiveReference;
 
     public BankAccountNumberRoute(Arbeidsgiver employer, BehandleArbeidsgiver handleEmployer,
-                                  KafkaConsumer<String, ExternalAttachment> consumer, long retryInterval, int retryMaxRetries) {
+                                  KafkaConsumer<String, ExternalAttachment> consumer,
+                                  long retryInterval, int retryMaxRetries) {
         this.handleEmployer = handleEmployer;
         this.consumer = consumer;
         this.structureValidator = new AARegOrganisationStructureValidator(employer);
@@ -108,7 +109,8 @@ public class BankAccountNumberRoute implements Runnable {
         try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
 
-            AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest, record.value().getArchiveReference());
+            AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest,
+                    record.value().getArchiveReference());
             if (result == AARegOrganisationStructureValidator.Result.Ok) {
                 try (Summary.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
                     updateRequest.getUnderliggendeBedriftListe()
@@ -133,7 +135,8 @@ public class BankAccountNumberRoute implements Runnable {
                 INVALID_ORG_STRUCTURE_COUNTER.inc();
                 consumer.commitSync();
             }
-        } catch (SOAPFaultException | XMLStreamException | DatatypeConfigurationException | HentOrganisasjonOrganisasjonIkkeFunnet e) {
+        } catch (SOAPFaultException | XMLStreamException | DatatypeConfigurationException |
+                HentOrganisasjonOrganisasjonIkkeFunnet e) {
             // XMLStreamException and DatatypeConfigurationException should not occur
             // HentOrganisasjonOrganisasjonIkkeFunnet but might occur when schema is incomplete
             // All these errors are non-recoverable, so we dump them into the log, for kibana to pick it up
@@ -148,7 +151,8 @@ public class BankAccountNumberRoute implements Runnable {
 
     public void doRetry(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
         if (retryCount < retryMaxRetries) {
-            log.warn("Exception caught while updating account number in AAReg, will retry in " + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
+            log.warn("Exception caught while updating account number in AAReg, will retry in "
+                            + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
                     keyValue("archRef", record.value().getArchiveReference()),
                     keyValue("offset", record.offset()),
                     keyValue("partition", record.partition()),

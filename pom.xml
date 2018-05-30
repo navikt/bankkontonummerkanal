@@ -6,7 +6,7 @@
 
     <groupId>no.nav.altinn.kanal</groupId>
     <artifactId>bankkontonummer-kanal</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <version>2.0</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,6 +19,12 @@
         <confluent.version>4.0.0</confluent.version>
         <maven.failsafe.plugin.version>2.18.1</maven.failsafe.plugin.version>
         <junit.version>4.12</junit.version>
+        <nav.arbeidsgiver.version>2.0.0</nav.arbeidsgiver.version>
+        <nav.behandleArbeidsgiver.version>1.0.0</nav.behandleArbeidsgiver.version>
+        <altinnkanal.schemas.version>1.0.39</altinnkanal.schemas.version>
+        <embedded.kafka.version>0.6.2</embedded.kafka.version>
+        <mocito.version>2.16.0</mocito.version>
+        <logstash.logback.encoder.version>5.0</logstash.logback.encoder.version>
     </properties>
 
     <repositories>
@@ -36,7 +42,7 @@
         <dependency>
             <groupId>no.nav.altinnkanal</groupId>
             <artifactId>altinnkanal-schemas</artifactId>
-            <version>1.0.39</version>
+            <version>${altinnkanal.schemas.version}</version>
         </dependency>
 
         <!-- Web server -->
@@ -127,7 +133,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>5.0</version>
+            <version>${logstash.logback.encoder.version}</version>
         </dependency>
 
         <!-- Test -->
@@ -141,13 +147,13 @@
         <dependency>
             <groupId>no.nav.common</groupId>
             <artifactId>embedded.kafka</artifactId>
-            <version>0.6.2</version>
+            <version>${embedded.kafka.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>2.16.0</version>
+            <version>${mocito.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -194,13 +200,13 @@
                         <artifactItem>
                             <groupId>no.nav.esb</groupId>
                             <artifactId>nav-arbeidsgiver-tjenestespesifikasjon</artifactId>
-                            <version>2.0.0</version>
+                            <version>${nav.arbeidsgiver.version}</version>
                             <type>zip</type>
                         </artifactItem>
                         <artifactItem>
                             <groupId>no.nav.esb</groupId>
                             <artifactId>nav-behandleArbeidsgiver-tjenestespesifikasjon</artifactId>
-                            <version>1.0.0</version>
+                            <version>${nav.behandleArbeidsgiver.version}</version>
                             <type>zip</type>
                         </artifactItem>
                     </artifactItems>

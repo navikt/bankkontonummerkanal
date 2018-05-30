@@ -19,8 +19,15 @@ pipeline {
                 script {
                     commitHashShort = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     pom = readMavenPom file: 'pom.xml'
-                    applicationVersion = "${pom.version}.${env.BUILD_ID}-${commitHashShort}"
-                    applicationFullName = "${env.APPLICATION_FASIT_NAME}:${applicationVersion}"
+                    env.APPLICATION_VERSION = "${applicationVersion}"
+                    if (applicationVersion.endsWith('-SNAPSHOT')) {
+                        env.APPLICATION_VERSION = "${pom.version}.${env.BUILD_ID}-${commitHashShort}"
+                    } else {
+                        env.DEPLOY_TO = 'production'
+                    }
+                    changeLog = utils.gitVars(env.APPLICATION_NAME).changeLog.toString()
+                    githubStatus 'pending'
+                    slackStatus status: 'started', changeLog: "${changeLog}"
                 }
             }
         }
@@ -32,6 +39,7 @@ pipeline {
         stage('run unit and integration tests') {
             steps {
                 sh 'mvn verify'
+                slackStatus status: 'passed'
             }
         }
         stage('docker build') {
@@ -46,58 +54,59 @@ pipeline {
         }
         stage('validate & upload nais.yaml to nexus m2internal') {
             steps {
-                script {
-                    withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'nexus-user', usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD']]) {
-                        sh "nais validate"
-                        sh "nais upload --app ${env.APPLICATION_FASIT_NAME} -v ${applicationVersion}"
-                    }
-                }
+                nais 'validate'
+                nais 'upload'
             }
         }
-        stage('deploy to nais') {
+
+        stage('deploy to preprod') {
             steps {
-                script {
-                    def postBody = [
-                            fields: [
-                                    project          : [key: "DEPLOY"],
-                                    issuetype        : [id: "14302"],
-                                    customfield_14811: [value: "${env.FASIT_ENV}"],
-                                    customfield_14812: "${applicationFullName}",
-                                    customfield_17410: "${env.BUILD_URL}input/Deploy/",
-                                    customfield_19015: [id: "22707", value: "Yes"],
-                                    customfield_19413: "${env.APPLICATION_NAMESPACE}",
-                                    customfield_19610: [value: "${env.ZONE}"],
-                                    summary          : "Automatisk deploy av ${applicationFullName} til ${env.FASIT_ENV}"
-                            ]
-                    ]
-
-                    def jiraPayload = groovy.json.JsonOutput.toJson(postBody)
-
-                    echo jiraPayload
-
-                    def response = httpRequest([
-                            url                   : "https://jira.adeo.no/rest/api/2/issue/",
-                            authentication        : "nais-user",
-                            consoleLogResponseBody: true,
-                            contentType           : "APPLICATION_JSON",
-                            httpMode              : "POST",
-                            requestBody           : jiraPayload
-                    ])
-
-                    def jiraIssueId = readJSON([text: response.content])["key"]
-                    currentBuild.description = "Waiting for <a href=\"https://jira.adeo.no/browse/$jiraIssueId\">${jiraIssueId}</a>"
-                }
+                deployApplication()
             }
         }
+        stage('deploy to production') {
+            when { environment name: 'DEPLOY_TO', value: 'production' }
+            environment { FASIT_ENV = 'p' }
+            steps {
+                deployApplication()
+            }
+        }
+
     }
+
     post {
         always {
+            ciSkip 'postProcess'
+            dockerUtils 'pruneBuilds'
+            script {
+                if (currentBuild.result == 'ABORTED') {
+                    slackStatus status: 'aborted'
+                }
+            }
             junit 'target/surefire-reports/*.xml'
             archive 'target/bankkontonummer-kanal-*.jar'
             deleteDir()
-            script {
-                sh "docker system prune -af"
-            }
         }
+        success {
+            githubStatus 'success'
+            slackStatus status: 'success'
+        }
+        failure {
+            githubStatus 'failure'
+            slackStatus status: 'failure'
+        }
+    }
+}
+
+void deployApplication() {
+    def jiraIssueId = nais 'jiraDeploy'
+    slackStatus status: 'deploying', jiraIssueId: "${jiraIssueId}"
+    try {
+        timeout(time: 1, unit: 'HOURS') {
+            input id: "deploy", message: "Waiting for remote Jenkins server to deploy the application..."
+        }
+    } catch (Exception exception) {
+        currentBuild.description = "Deploy failed, see " + currentBuild.description
+        throw exception
     }
 }

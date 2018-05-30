@@ -1,6 +1,5 @@
 package no.nav.altinn.validators;
 
-import io.prometheus.client.Gauge;
 import io.prometheus.client.Summary;
 import no.nav.altinn.route.BankAccountNumberRoute;
 import no.nav.virksomhet.tjenester.arbeidsgiver.meldinger.v2.HentOrganisasjonRequest;
@@ -25,11 +24,13 @@ public class AARegOrganisationStructureValidator {
         this.employer = employer;
     }
 
-    public static Result validateOrganizationStructure(HentOrganisasjonResponse aaregResponse, OppdaterKontonummerRequest update, String archiveReference) {
+    public static Result validateOrganizationStructure(HentOrganisasjonResponse aaregResponse,
+                                                       OppdaterKontonummerRequest update, String archiveReference) {
         if (update.getOverordnetEnhet().getOrgNr() == null || update.getOverordnetEnhet().getOrgNr().isEmpty()) {
             return Result.MissingHovedenhetOrgNr;
         }
-        if (update.getOverordnetEnhet().getKontonummer() == null || update.getOverordnetEnhet().getKontonummer().isEmpty()) {
+        if (update.getOverordnetEnhet().getKontonummer() == null ||
+                update.getOverordnetEnhet().getKontonummer().isEmpty()) {
             return Result.MissingHovedenhetKontonummer;
         }
 
@@ -38,7 +39,8 @@ public class AARegOrganisationStructureValidator {
                 return Result.MissingUnderenhetOrgNr;
             }
 
-            Optional<RelatertOrganisasjonSammendrag> daughterOrganization = findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
+            Optional<RelatertOrganisasjonSammendrag> daughterOrganization =
+                    findDaughterOrganization(aaregResponse.getBarneorganisasjonListe(), bankAccountUpdate.getOrgNr());
 
             if (!daughterOrganization.isPresent()) {
                 log.warn("Daughter organization with organization number {} not found in the parent organization {} {}",
@@ -52,14 +54,16 @@ public class AARegOrganisationStructureValidator {
 
     }
 
-    private static Optional<RelatertOrganisasjonSammendrag> findDaughterOrganization(List<RelatertOrganisasjonSammendrag> daughterOrganizations, String orgNumber) {
+    private static Optional<RelatertOrganisasjonSammendrag> findDaughterOrganization(
+            List<RelatertOrganisasjonSammendrag> daughterOrganizations, String orgNumber) {
         return daughterOrganizations.stream()
                 .filter(org -> org.getOrgNr().equals(orgNumber))
                 .filter(org -> org.getStatus().getKode().equals("1"))
                 .findFirst();
     }
 
-    public Result validate(OppdaterKontonummerRequest updateBankAccountRequest, String archiveReference) throws HentOrganisasjonOrganisasjonIkkeFunnet {
+    public Result validate(OppdaterKontonummerRequest updateBankAccountRequest, String archiveReference)
+            throws HentOrganisasjonOrganisasjonIkkeFunnet {
         log.debug("Update bank account request {}", updateBankAccountRequest);
         log.debug("Parent company {}", updateBankAccountRequest.getOverordnetEnhet());
 
