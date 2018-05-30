@@ -7,10 +7,13 @@ pipeline {
     }
 
     environment {
+        APPLICATION_NAME = 'pale'
         FASIT_ENV = 'q1'
         ZONE = 'fss'
         APPLICATION_NAMESPACE = 'default'
         APPLICATION_FASIT_NAME = 'bankkontonummerkanal'
+        COMMIT_HASH_SHORT = gitVars 'commitHashShort'
+        COMMIT_HASH = gitVars 'commitHash'
     }
 
     stages {
