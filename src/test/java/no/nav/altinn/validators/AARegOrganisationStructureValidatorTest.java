@@ -53,15 +53,6 @@ public class AARegOrganisationStructureValidatorTest {
     }
 
     @Test
-    public void testReturnsMissingHovedenhetKontonummer() throws Exception {
-        OppdaterKontonummerRequest request = unmarshallXML("/xmlextractor/message_with_missing_bank_account_number.xml");
-
-        HentOrganisasjonResponse response = defaultTestResponse();
-
-        assertEquals(Result.MissingHovedenhetKontonummer, validateOrganizationStructure(response, request, "ARtest"));
-    }
-
-    @Test
     public void testReturnsMissingHovedenhetOrganizationNumber() throws Exception {
         OppdaterKontonummerRequest request = unmarshallXML("/xmlextractor/message_with_missing_organization_number.xml");
 

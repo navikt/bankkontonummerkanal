@@ -109,7 +109,6 @@ public class BankAccountXmlExtractor {
             }
             throw new RuntimeException("Could not find field FormData");
         } finally {
-            System.out.println(reader.next());
             reader.close();
         }
     }

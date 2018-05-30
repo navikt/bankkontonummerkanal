@@ -29,10 +29,6 @@ public class AARegOrganisationStructureValidator {
         if (update.getOverordnetEnhet().getOrgNr() == null || update.getOverordnetEnhet().getOrgNr().isEmpty()) {
             return Result.MissingHovedenhetOrgNr;
         }
-        if (update.getOverordnetEnhet().getKontonummer() == null ||
-                update.getOverordnetEnhet().getKontonummer().isEmpty()) {
-            return Result.MissingHovedenhetKontonummer;
-        }
 
         for (KontonummerOppdatering bankAccountUpdate : update.getUnderliggendeBedriftListe()) {
             if (bankAccountUpdate.getOrgNr() == null || bankAccountUpdate.getOrgNr().trim().isEmpty()) {
@@ -81,7 +77,6 @@ public class AARegOrganisationStructureValidator {
     public enum Result {
         Ok,
         InvalidStructure,
-        MissingHovedenhetKontonummer,
         MissingHovedenhetOrgNr,
         MissingUnderenhetOrgNr
     }

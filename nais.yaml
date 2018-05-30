@@ -39,3 +39,5 @@ fasitResources:
     resourceType: credential
   - alias: srvbankkontonummerkanal
     resourceType: credential
+  - alias: kafka_bootstrap_servers
+    resourceType: BaseUrl

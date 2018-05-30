@@ -48,7 +48,7 @@ public class BankAccountNumberChannelIT {
         String hentOrgNrURL = "http://localhost:" + mockPort + "/ws/arbeidsgiver/hentOrganisasjon";
         String oppdatertKontoNrUrl = "http://localhost:" + mockPort + "/ws/behandleArbeidsgiver/oppdaterKontonummer";
         environmentConfig = new EnvironmentConfig(hentOrgNrURL, oppdatertKontoNrUrl, MOCK_USERNAME, MOCK_PASSWORD,
-                TestUtil.randomPort(), "test.bankaccount.number.update", 5000, 5, 100, 200, "testuser", "testpass");
+                TestUtil.randomPort(), "test.bankaccount.number.update", 5000, 5, 100, 200, "testuser", "testpass", null);
 
         kafkaEnvironment = new KafkaEnvironment(1, Collections.singletonList(environmentConfig.bankaccountNumberChangedTopic), true, false, false);
         kafkaEnvironment.start();

@@ -15,6 +15,7 @@ public class EnvironmentConfig {
     public final long retryMaxWSReceiveTimeout;
     public final String srvbankkontonummerUsername;
     public final String srvbankkontonummerPassword;
+    public final String kafkaBootstrapServersURL;
 
     public EnvironmentConfig() {
         this.aaregHentOrganisasjonEndpointURL = getVariable(AAREG_HENT_ORGANISASJON_ENDPOINTURL);
@@ -29,12 +30,14 @@ public class EnvironmentConfig {
         this.retryMaxWSReceiveTimeout = Integer.parseInt(getVariable(RETRY_MAX_WS_RECEIVE_TIMEOUT));
         this.srvbankkontonummerUsername = getVariable(SRVBANKKONTONUMMERKANAL_USERNAME);
         this.srvbankkontonummerPassword = getVariable(SRVBANKKONTONUMMERKANAL_PASSWORD);
+        this.kafkaBootstrapServersURL = getVariable(KAFKA_BOOTSTRAP_SERVERS_URL);
     }
 
     public EnvironmentConfig(String hentOrgNrUrl, String oppdaterKontnrUrl, String username, String password,
                              int serverPort, String bankaccountNumberChangedTopic, int retryInterval,
                              int retryMaxRetries, int retryMaxWSConnectionTimeout, int retryMaxWSReceiveTimeout,
-                             String srvbankkontonummerUsername, String srvbankkontonummerPassword) {
+                             String srvbankkontonummerUsername, String srvbankkontonummerPassword,
+                             String kafkaBootstrapServersURL) {
         this.aaregHentOrganisasjonEndpointURL = hentOrgNrUrl;
         this.aaregOppdaterKontonummerEndpointURL = oppdaterKontnrUrl;
         this.aaregWSUsername = username;
@@ -47,6 +50,7 @@ public class EnvironmentConfig {
         this.retryMaxWSReceiveTimeout = retryMaxWSReceiveTimeout;
         this.srvbankkontonummerUsername = srvbankkontonummerUsername;
         this.srvbankkontonummerPassword = srvbankkontonummerPassword;
+        this.kafkaBootstrapServersURL = kafkaBootstrapServersURL;
     }
 
     public String getVariable(Key key) {
@@ -71,7 +75,8 @@ public class EnvironmentConfig {
         RETRY_INTERVAL("5000"),
         RETRY_MAX_RETRIES("5"),
         RETRY_MAX_WS_CONNECTION_TIMEOUT("30000"),
-        RETRY_MAX_WS_RECEIVE_TIMEOUT("60000");
+        RETRY_MAX_WS_RECEIVE_TIMEOUT("60000"),
+        KAFKA_BOOTSTRAP_SERVERS_URL;
         public final String defaultValue;
 
         Key() {
