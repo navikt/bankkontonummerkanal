@@ -18,13 +18,12 @@ pipeline {
     stages {
         stage('setup') {
             steps {
+                ciSkip 'check'
                 script {
-                    commitHashShort = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     pom = readMavenPom file: 'pom.xml'
-                    applicationVersion = "${pom.version}"
-                    env.APPLICATION_VERSION = "${applicationVersion}"
+                    env.APPLICATION_VERSION = "${pom.version}"
                     if (applicationVersion.endsWith('-SNAPSHOT')) {
-                        env.APPLICATION_VERSION = "${pom.version}.${env.BUILD_ID}-${commitHashShort}"
+                        env.APPLICATION_VERSION = "${env.APPLICATION_VERSION}.${env.BUILD_ID}-${env.COMMIT_HASH_SHORT}"
                     } else {
                         env.DEPLOY_TO = 'production'
                     }
