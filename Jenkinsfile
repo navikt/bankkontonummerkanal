@@ -7,11 +7,10 @@ pipeline {
     }
 
     environment {
-        APPLICATION_NAME = 'pale'
+        APPLICATION_NAME = 'bankkontonummerkanal'
         FASIT_ENV = 'q1'
         ZONE = 'fss'
-        APPLICATION_NAMESPACE = 'default'
-        APPLICATION_FASIT_NAME = 'bankkontonummerkanal'
+        NAMESPACE = 'default'
         COMMIT_HASH_SHORT = gitVars 'commitHashShort'
         COMMIT_HASH = gitVars 'commitHash'
     }
@@ -22,6 +21,7 @@ pipeline {
                 script {
                     commitHashShort = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
                     pom = readMavenPom file: 'pom.xml'
+                    applicationVersion = "${pom.version}"
                     env.APPLICATION_VERSION = "${applicationVersion}"
                     if (applicationVersion.endsWith('-SNAPSHOT')) {
                         env.APPLICATION_VERSION = "${pom.version}.${env.BUILD_ID}-${commitHashShort}"
@@ -47,12 +47,7 @@ pipeline {
         }
         stage('docker build') {
             steps {
-                script {
-                    docker.withRegistry('https://repo.adeo.no:5443/') {
-                        def image = docker.build("integrasjon/${applicationFullName}", "--build-arg GIT_COMMIT_ID=${commitHashShort} .")
-                        image.push()
-                    }
-                }
+                dockerUtils 'createPushImage'
             }
         }
         stage('validate & upload nais.yaml to nexus m2internal') {
