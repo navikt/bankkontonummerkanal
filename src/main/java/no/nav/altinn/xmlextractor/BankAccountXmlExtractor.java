@@ -1,5 +1,6 @@
 package no.nav.altinn.xmlextractor;
 
+import no.nav.altinn.route.BankAccountNumberRoute;
 import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.KontonummerOppdatering;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.meldinger.v1.OppdaterKontonummerRequest;
@@ -38,7 +39,10 @@ public class BankAccountXmlExtractor {
         updateRequest.setSporingsdetalj(trackingDetail);
 
         String formData = extractFormData(xmlReader);
-        log.debug("Extracted FormData: {}", formData);
+        if (log.isDebugEnabled()) {
+            log.debug("Extracted FormData: {}", formData.replaceAll(BankAccountNumberRoute.ATTACHMENTS_REGEX,
+                    BankAccountNumberRoute.ATTACHMENTS_REGEX));
+        }
 
         XMLStreamReader reader = xmlInputFactory.createXMLStreamReader(new StringReader(formData));
 

@@ -22,6 +22,9 @@ import javax.xml.ws.soap.SOAPFaultException;
 import static net.logstash.logback.argument.StructuredArguments.*;
 
 public class BankAccountNumberRoute implements Runnable {
+    public static final String ATTACHMENTS_REGEX = "<Attachments>.+</Attachments>";
+    public static final String ATTACHMENTS_REPLACEMENT = "<Attachments><!--Removed for readability--></Attachments>";
+
     private final static String METRICS_NS = "bankkontonummerkanal";
 
     private final static Counter INCOMING_MESSAGE_COUNTER = Counter.build()
@@ -125,13 +128,18 @@ public class BankAccountNumberRoute implements Runnable {
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
-                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}, {}",
+                log.debug("Content of failed message: {}, {}, {}, {}",
+                        keyValue("archRef", record.value().getArchiveReference()),
+                        keyValue("offset", record.offset()),
+                        keyValue("partition", record.partition()),
+                        keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
+                                ATTACHMENTS_REPLACEMENT)));
+                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
                         keyValue("reason", result.name()),
                         keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("offset", record.offset()),
                         keyValue("partition", record.partition()),
-                        keyValue("sendMail", true),
-                        keyValue("fullXmlMessage", record.value().getBatch()));
+                        keyValue("sendMail", true));
                 INVALID_ORG_STRUCTURE_COUNTER.inc();
                 consumer.commitSync();
             }
@@ -173,12 +181,19 @@ public class BankAccountNumberRoute implements Runnable {
     }
 
     public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
-        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
+        if (log.isDebugEnabled()) {
+            log.debug("Content of failed message: {}, {}, {}, {}",
+                    keyValue("archRef", record.value().getArchiveReference()),
+                    keyValue("offset", record.offset()),
+                    keyValue("partition", record.partition()),
+                    keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
+                            ATTACHMENTS_REPLACEMENT)));
+        }
+        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}",
                 keyValue("archRef", record.value().getArchiveReference()),
                 keyValue("offset", record.offset()),
                 keyValue("partition", record.partition()),
                 keyValue("sendMail", true),
-                keyValue("fullXmlMessage", record.value().getBatch()),
                 e);
     }
 }
