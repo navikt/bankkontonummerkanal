@@ -22,7 +22,7 @@ pipeline {
                 script {
                     pom = readMavenPom file: 'pom.xml'
                     env.APPLICATION_VERSION = "${pom.version}"
-                    if (applicationVersion.endsWith('-SNAPSHOT')) {
+                    if (env.APPLICATION_VERSION.endsWith('-SNAPSHOT')) {
                         env.APPLICATION_VERSION = "${env.APPLICATION_VERSION}.${env.BUILD_ID}-${env.COMMIT_HASH_SHORT}"
                     } else {
                         env.DEPLOY_TO = 'production'
