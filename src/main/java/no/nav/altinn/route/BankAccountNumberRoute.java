@@ -39,11 +39,13 @@ public class BankAccountNumberRoute implements Runnable {
             .register();
     private final static Counter UNSUCESSFUL_MESSAGE_COUNTER = Counter.build()
             .namespace(METRICS_NS)
+            .labelNames("archiveReference", "offset", "partition")
             .name("unsuccessful_message_counter")
             .help("Counts the number of unsuccessful messages")
             .register();
     private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build()
             .namespace(METRICS_NS)
+            .labelNames("archiveReference", "offset", "partition")
             .name("invalid_org_strcture_count")
             .help("Counts the number of messages that failed because the organization structure was invalid")
             .register();
@@ -108,6 +110,11 @@ public class BankAccountNumberRoute implements Runnable {
 
     private void handleMessage(ConsumerRecord<String, ExternalAttachment> record) {
         ExternalAttachment externalAttachment = record.value();
+        String[] alertLabels = new String[] {
+                record.value().getArchiveReference(),
+                Long.toString(record.offset()),
+                Integer.toString(record.partition())
+        };
         INCOMING_MESSAGE_COUNTER.inc();
         try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
@@ -116,8 +123,8 @@ public class BankAccountNumberRoute implements Runnable {
                     record.value().getArchiveReference());
             if (result == AARegOrganisationStructureValidator.Result.Ok) {
                 try (Summary.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
-                    updateRequest.getUnderliggendeBedriftListe()
-                            .removeIf(b -> b.getKontonummer() == null || b.getKontonummer().isEmpty());
+                    //updateRequest.getUnderliggendeBedriftListe()
+                    //        .removeIf(b -> b.getKontonummer() == null || b.getKontonummer().isEmpty());
                     handleEmployer.oppdaterKontonummer(updateRequest);
                     ignoredAaregUpdateTimer.observeDuration();
                 }
@@ -140,7 +147,7 @@ public class BankAccountNumberRoute implements Runnable {
                         keyValue("offset", record.offset()),
                         keyValue("partition", record.partition()),
                         keyValue("sendMail", true));
-                INVALID_ORG_STRUCTURE_COUNTER.inc();
+                INVALID_ORG_STRUCTURE_COUNTER.labels(alertLabels).inc();
                 consumer.commitSync();
             }
         } catch (SOAPFaultException | XMLStreamException | DatatypeConfigurationException |
@@ -151,7 +158,7 @@ public class BankAccountNumberRoute implements Runnable {
             // and send an notification
             logFailedMessage(record, e);
             consumer.commitSync();
-            UNSUCESSFUL_MESSAGE_COUNTER.inc();
+            UNSUCESSFUL_MESSAGE_COUNTER.labels(alertLabels).inc();
         } catch (Exception e) {
             doRetry(record, e);
         }
