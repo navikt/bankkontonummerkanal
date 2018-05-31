@@ -123,8 +123,11 @@ public class BankAccountNumberRoute implements Runnable {
                     record.value().getArchiveReference());
             if (result == AARegOrganisationStructureValidator.Result.Ok) {
                 try (Summary.Timer ignoredAaregUpdateTimer = AAREG_UPDATE_TIMER.startTimer()) {
-                    //updateRequest.getUnderliggendeBedriftListe()
-                    //        .removeIf(b -> b.getKontonummer() == null || b.getKontonummer().isEmpty());
+                    if (updateRequest.getOverordnetEnhet().getKontonummer() == null || updateRequest.getOverordnetEnhet().getKontonummer().isEmpty()) {
+                        updateRequest.setOverordnetEnhet(null);
+                    }
+                    updateRequest.getUnderliggendeBedriftListe()
+                            .removeIf(b -> b.getKontonummer() == null || b.getKontonummer().isEmpty());
                     handleEmployer.oppdaterKontonummer(updateRequest);
                     ignoredAaregUpdateTimer.observeDuration();
                 }
