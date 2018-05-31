@@ -139,12 +139,14 @@ public class BankAccountNumberRoute implements Runnable {
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
-                log.debug("Content of failed message: {}, {}, {}, {}",
-                        keyValue("archRef", record.value().getArchiveReference()),
-                        keyValue("offset", record.offset()),
-                        keyValue("partition", record.partition()),
-                        keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
-                                ATTACHMENTS_REPLACEMENT)));
+                if (log.isDebugEnabled()) {
+                    log.debug("Content of failed message: {}, {}, {}, {}",
+                            keyValue("archRef", record.value().getArchiveReference()),
+                            keyValue("offset", record.offset()),
+                            keyValue("partition", record.partition()),
+                            keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
+                                    ATTACHMENTS_REPLACEMENT)));
+                }
                 log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
                         keyValue("reason", result.name()),
                         keyValue("archRef", record.value().getArchiveReference()),
