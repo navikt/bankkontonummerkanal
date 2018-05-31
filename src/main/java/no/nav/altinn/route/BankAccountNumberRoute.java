@@ -118,6 +118,7 @@ public class BankAccountNumberRoute implements Runnable {
         INCOMING_MESSAGE_COUNTER.inc();
         try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
+            String orgNr = updateRequest.getOverordnetEnhet().getOrgNr();
 
             AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest,
                     record.value().getArchiveReference());
@@ -134,7 +135,7 @@ public class BankAccountNumberRoute implements Runnable {
                 ignoredFullRouteTimer.observeDuration();
                 log.info("Successfully updated the account number for: {}, {}",
                         keyValue("archRef", record.value().getArchiveReference()),
-                        keyValue("orgNumber", updateRequest.getOverordnetEnhet().getOrgNr()));
+                        keyValue("orgNumber", orgNr));
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
