@@ -73,7 +73,6 @@ public class BankAccountNumberRouteTest {
         verify(route, timeout(10000).times(1)).logFailedMessage(any(), any());
     }
 
-    @Ignore
     @Test
     public void testRetriesOnRuntimeException() throws Exception {
         producer.send(new ProducerRecord<>(TOPIC, TestUtil.defaultExternalAttachment()));
