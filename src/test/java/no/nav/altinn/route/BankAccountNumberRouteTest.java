@@ -70,7 +70,7 @@ public class BankAccountNumberRouteTest {
         when(employer.hentOrganisasjon(any())).thenThrow(new SOAPFaultException(soapFactory.createFault()));
 
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(route, timeout(10000).times(1)).logFailedMessage(any(), any());
+        verify(route, timeout(10000).times(1)).logFailedMessage(any(), anyString(), any());
     }
 
     @Test
@@ -100,7 +100,7 @@ public class BankAccountNumberRouteTest {
 
         verify(consumer, timeout(10000).times(5)).poll(anyLong());
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(route, timeout(10000)).logFailedMessage(any(), any());
+        verify(route, timeout(10000)).logFailedMessage(any(), anyString(), any());
     }
 
     @Test

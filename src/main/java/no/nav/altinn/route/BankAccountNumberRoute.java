@@ -116,9 +116,11 @@ public class BankAccountNumberRoute implements Runnable {
                 Integer.toString(record.partition())
         };
         INCOMING_MESSAGE_COUNTER.inc();
+        String orgNr = "undefined";
         try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
-            String orgNr = updateRequest.getOverordnetEnhet().getOrgNr();
+            if (updateRequest.getOverordnetEnhet() != null)
+                orgNr = updateRequest.getOverordnetEnhet().getOrgNr();
 
             AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest,
                     record.value().getArchiveReference());
@@ -162,15 +164,15 @@ public class BankAccountNumberRoute implements Runnable {
             // HentOrganisasjonOrganisasjonIkkeFunnet but might occur when schema is incomplete
             // All these errors are non-recoverable, so we dump them into the log, for kibana to pick it up
             // and send an notification
-            logFailedMessage(record, e);
+            logFailedMessage(record, orgNr, e);
             consumer.commitSync();
             UNSUCESSFUL_MESSAGE_COUNTER.labels(alertLabels).inc();
         } catch (Exception e) {
-            doRetry(record, e);
+            doRetry(record, orgNr, e);
         }
     }
 
-    public void doRetry(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
+    public void doRetry(ConsumerRecord<String, ExternalAttachment> record, String orgNr, Exception e) {
         if (retryCount < retryMaxRetries) {
             log.warn("Exception caught while updating account number in AAReg, will retry in "
                             + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
@@ -188,12 +190,12 @@ public class BankAccountNumberRoute implements Runnable {
                 log.error("Interrupted while waiting to retry", interruptedException);
             }
         } else {
-            logFailedMessage(record, e);
+            logFailedMessage(record, orgNr, e);
             consumer.commitSync();
         }
     }
 
-    public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, Exception e) {
+    public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, String orgNr, Exception e) {
         if (log.isDebugEnabled()) {
             log.debug("Content of failed message: {}, {}, {}, {}",
                     keyValue("archRef", record.value().getArchiveReference()),
@@ -202,11 +204,12 @@ public class BankAccountNumberRoute implements Runnable {
                     keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
                             ATTACHMENTS_REPLACEMENT)));
         }
-        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}",
+        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
                 keyValue("archRef", record.value().getArchiveReference()),
                 keyValue("offset", record.offset()),
                 keyValue("partition", record.partition()),
                 keyValue("sendMail", true),
+                keyValue("orgNumber", orgNr),
                 e);
     }
 }
