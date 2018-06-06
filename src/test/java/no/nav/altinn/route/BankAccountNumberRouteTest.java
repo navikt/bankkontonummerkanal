@@ -6,6 +6,7 @@ import no.nav.altinnkanal.avro.ExternalAttachment;
 import no.nav.common.KafkaEnvironment;
 import no.nav.virksomhet.tjenester.arbeidsgiver.v2.Arbeidsgiver;
 import no.nav.virksomhet.tjenester.behandlearbeidsgiver.v1.BehandleArbeidsgiver;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -17,6 +18,7 @@ import javax.xml.ws.soap.SOAPFaultException;
 import java.net.ConnectException;
 import java.util.Collections;
 
+import static no.nav.altinn.utils.XmlUtils.readXml;
 import static org.mockito.Mockito.*;
 
 public class BankAccountNumberRouteTest {
@@ -70,7 +72,7 @@ public class BankAccountNumberRouteTest {
         when(employer.hentOrganisasjon(any())).thenThrow(new SOAPFaultException(soapFactory.createFault()));
 
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(route, timeout(10000).times(1)).logFailedMessage(any(), anyString(), any());
+        verify(route, timeout(10000).times(1)).logFailedMessage(any(), anyString(), any(), any());
     }
 
     @Test
@@ -83,7 +85,7 @@ public class BankAccountNumberRouteTest {
                 .thenReturn(DomainObjectUtils.defaultTestResponse());
 
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(consumer, timeout(10000).times(3)).poll(anyLong());
+        verify(consumer, timeout(10000).atLeast(3)).poll(anyLong());
         verify(handleEmployer, timeout(10000).times(1)).oppdaterKontonummer(any());
     }
 
@@ -100,7 +102,7 @@ public class BankAccountNumberRouteTest {
 
         verify(consumer, timeout(10000).times(5)).poll(anyLong());
         verify(consumer, timeout(10000).times(1)).commitSync();
-        verify(route, timeout(10000)).logFailedMessage(any(), anyString(), any());
+        verify(route, timeout(10000)).logFailedMessage(any(), anyString(), any(), any());
     }
 
     @Test
@@ -114,5 +116,20 @@ public class BankAccountNumberRouteTest {
         verify(consumer, timeout(10000).times(1)).commitSync();
         verify(consumer, timeout(10000).atLeast(2)).poll(anyLong());
         verify(handleEmployer, timeout(10000)).oppdaterKontonummer(any());
+    }
+
+    @Test
+    public void testReturnsEarlyOnMissingNewBankAccountNumber() throws Exception {
+        ExternalAttachment externalAttachment = ExternalAttachment.newBuilder()
+                .setArchiveReference("TestArchRef")
+                .setServiceCode("a")
+                .setServiceEditionCode("b")
+                .setBatch(readXml("/xmlextractor/message_no_new_bank_account_number.xml"))
+                .build();
+
+        route.handleMessage(new ConsumerRecord<>("testTopic", 0, 0, null, externalAttachment));
+
+        verify(employer, never()).hentOrganisasjon(any());
+        verify(handleEmployer, never()).oppdaterKontonummer(any());
     }
 }

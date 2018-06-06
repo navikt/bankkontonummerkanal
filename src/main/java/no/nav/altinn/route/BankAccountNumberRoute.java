@@ -2,6 +2,7 @@ package no.nav.altinn.route;
 
 import io.prometheus.client.Counter;
 import io.prometheus.client.Summary;
+import net.logstash.logback.marker.LogstashMarker;
 import no.nav.altinn.validators.AARegOrganisationStructureValidator;
 import no.nav.altinn.xmlextractor.BankAccountXmlExtractor;
 import no.nav.altinnkanal.avro.ExternalAttachment;
@@ -20,6 +21,8 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.ws.soap.SOAPFaultException;
 
 import static net.logstash.logback.argument.StructuredArguments.*;
+import static net.logstash.logback.marker.Markers.append;
+import static net.logstash.logback.marker.Markers.appendArray;
 
 public class BankAccountNumberRoute implements Runnable {
     public static final String ATTACHMENTS_REGEX = "<Attachments>.+</Attachments>";
@@ -108,7 +111,12 @@ public class BankAccountNumberRoute implements Runnable {
         stop();
     }
 
-    private void handleMessage(ConsumerRecord<String, ExternalAttachment> record) {
+    private LogstashMarker structureOf(OppdaterKontonummerRequest req) {
+        return append("mainOrg", req.getOverordnetEnhet())
+                .and(appendArray("daughterOrgs", req.getUnderliggendeBedriftListe().toArray()));
+    }
+
+    void handleMessage(ConsumerRecord<String, ExternalAttachment> record) {
         ExternalAttachment externalAttachment = record.value();
         String[] alertLabels = new String[] {
                 record.value().getArchiveReference(),
@@ -117,10 +125,24 @@ public class BankAccountNumberRoute implements Runnable {
         };
         INCOMING_MESSAGE_COUNTER.inc();
         String orgNr = "undefined";
+        LogstashMarker logStructure = null;
         try (Summary.Timer ignoredFullRouteTimer = FULL_ROUTE_TIMER.startTimer()) {
             OppdaterKontonummerRequest updateRequest = xmlExtractor.extract(externalAttachment);
             if (updateRequest.getOverordnetEnhet() != null)
                 orgNr = updateRequest.getOverordnetEnhet().getOrgNr();
+
+            logStructure = structureOf(updateRequest);
+
+            if (updateRequest.getOverordnetEnhet().getKontonummer() == null
+                    && updateRequest.getUnderliggendeBedriftListe().stream().allMatch(d -> d.getKontonummer() == null)) {
+                log.error(logStructure, "Received a bank account number without any new bankaccount number {}, {}, {}, {}, {}",
+                        keyValue("orgNumber", orgNr),
+                        keyValue("archRef", record.value().getArchiveReference()),
+                        keyValue("offset", record.offset()),
+                        keyValue("partition", record.partition()),
+                        keyValue("sendMail", true));
+                return;
+            }
 
             AARegOrganisationStructureValidator.Result result = structureValidator.validate(updateRequest,
                     record.value().getArchiveReference());
@@ -135,26 +157,13 @@ public class BankAccountNumberRoute implements Runnable {
                     ignoredAaregUpdateTimer.observeDuration();
                 }
                 ignoredFullRouteTimer.observeDuration();
-                log.info("Successfully updated the account number for: {}, {}",
+                log.info(structureOf(updateRequest), "Successfully updated the account number for: {}, {}",
                         keyValue("archRef", record.value().getArchiveReference()),
                         keyValue("orgNumber", orgNr));
                 SUCESSFUL_MESSAGE_COUNTER.inc();
                 consumer.commitSync();
             } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("Content of failed message: {}, {}, {}, {}",
-                            keyValue("archRef", record.value().getArchiveReference()),
-                            keyValue("offset", record.offset()),
-                            keyValue("partition", record.partition()),
-                            keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
-                                    ATTACHMENTS_REPLACEMENT)));
-                }
-                log.error("Received message with invalid organisation. {}, {}, {}, {}, {}",
-                        keyValue("reason", result.name()),
-                        keyValue("archRef", record.value().getArchiveReference()),
-                        keyValue("offset", record.offset()),
-                        keyValue("partition", record.partition()),
-                        keyValue("sendMail", true));
+                logFailedMessage(record, orgNr, logStructure, null);
                 INVALID_ORG_STRUCTURE_COUNTER.labels(alertLabels).inc();
                 consumer.commitSync();
             }
@@ -164,17 +173,17 @@ public class BankAccountNumberRoute implements Runnable {
             // HentOrganisasjonOrganisasjonIkkeFunnet but might occur when schema is incomplete
             // All these errors are non-recoverable, so we dump them into the log, for kibana to pick it up
             // and send an notification
-            logFailedMessage(record, orgNr, e);
+            logFailedMessage(record, orgNr, logStructure, e);
             consumer.commitSync();
             UNSUCESSFUL_MESSAGE_COUNTER.labels(alertLabels).inc();
         } catch (Exception e) {
-            doRetry(record, orgNr, e);
+            doRetry(record, orgNr, logStructure, e);
         }
     }
 
-    public void doRetry(ConsumerRecord<String, ExternalAttachment> record, String orgNr, Exception e) {
+    private void doRetry(ConsumerRecord<String, ExternalAttachment> record, String orgNr, LogstashMarker logStructure, Exception e) {
         if (retryCount < retryMaxRetries) {
-            log.warn("Exception caught while updating account number in AAReg, will retry in "
+            log.warn(logStructure, "Exception caught while updating account number in AAReg, will retry in "
                             + retryInterval + " retry " + (retryCount+1) + "/" + retryMaxRetries + ". {}, {}, {}, {}",
                     keyValue("archRef", record.value().getArchiveReference()),
                     keyValue("offset", record.offset()),
@@ -190,12 +199,12 @@ public class BankAccountNumberRoute implements Runnable {
                 log.error("Interrupted while waiting to retry", interruptedException);
             }
         } else {
-            logFailedMessage(record, orgNr, e);
+            logFailedMessage(record, orgNr, logStructure, e);
             consumer.commitSync();
         }
     }
 
-    public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, String orgNr, Exception e) {
+    public void logFailedMessage(ConsumerRecord<String, ExternalAttachment> record, String orgNr, LogstashMarker logStructure, Exception e) {
         if (log.isDebugEnabled()) {
             log.debug("Content of failed message: {}, {}, {}, {}",
                     keyValue("archRef", record.value().getArchiveReference()),
@@ -204,7 +213,7 @@ public class BankAccountNumberRoute implements Runnable {
                     keyValue("xmlMessage", record.value().getBatch().replaceAll(ATTACHMENTS_REGEX,
                             ATTACHMENTS_REPLACEMENT)));
         }
-        log.error("Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
+        log.error(logStructure, "Exception caught while updating account number in AAReg. {}, {}, {}, {}, {}",
                 keyValue("archRef", record.value().getArchiveReference()),
                 keyValue("offset", record.offset()),
                 keyValue("partition", record.partition()),
