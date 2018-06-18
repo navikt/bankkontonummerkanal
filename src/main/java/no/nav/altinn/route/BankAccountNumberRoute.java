@@ -69,7 +69,6 @@ public class BankAccountNumberRoute implements Runnable {
             .register();
     private final static Counter MISSING_NEW_BANKACCOUNTNUMBER_COUNTER = Counter.build()
             .namespace(METRICS_NS)
-            .labelNames("archiveReference", "offset", "partition")
             .name("missing_new_bankaccountnumber")
             .help("Counts the number of messages that failed because missing new bankaccountnumnber")
             .register();
@@ -141,7 +140,7 @@ public class BankAccountNumberRoute implements Runnable {
 
             if (updateRequest.getOverordnetEnhet().getKontonummer() == null
                     && updateRequest.getUnderliggendeBedriftListe().stream().allMatch(d -> d.getKontonummer() == null)) {
-                MISSING_NEW_BANKACCOUNTNUMBER_COUNTER.labels(alertLabels).inc();
+                MISSING_NEW_BANKACCOUNTNUMBER_COUNTER.inc();
                 log.error(logStructure, "Received a bank account number without any new bankaccount number {}, {}, {}, {}, {}",
                         keyValue("orgNumber", orgNr),
                         keyValue("archRef", record.value().getArchiveReference()),
