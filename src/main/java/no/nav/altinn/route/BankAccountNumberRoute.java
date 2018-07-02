@@ -46,12 +46,6 @@ public class BankAccountNumberRoute implements Runnable {
             .name("unsuccessful_message_counter")
             .help("Counts the number of unsuccessful messages")
             .register();
-    private final static Counter INVALID_ORG_STRUCTURE_COUNTER = Counter.build()
-            .namespace(METRICS_NS)
-            .labelNames("archiveReference", "offset", "partition")
-            .name("invalid_org_strcture_count")
-            .help("Counts the number of messages that failed because the organization structure was invalid")
-            .register();
     private final static Summary FULL_ROUTE_TIMER = Summary.build()
             .namespace(METRICS_NS)
             .name("full_route_timer")
@@ -170,7 +164,7 @@ public class BankAccountNumberRoute implements Runnable {
                 consumer.commitSync();
             } else {
                 logFailedMessage(record, orgNr, logStructure, null);
-                INVALID_ORG_STRUCTURE_COUNTER.labels(alertLabels).inc();
+                UNSUCESSFUL_MESSAGE_COUNTER.labels(alertLabels).inc();
                 consumer.commitSync();
             }
         } catch (SOAPFaultException | XMLStreamException | DatatypeConfigurationException |
