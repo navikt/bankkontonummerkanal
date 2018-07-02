@@ -67,17 +67,19 @@ pipeline {
             when { environment name: 'DEPLOY_TO', value: 'production' }
             environment { FASIT_ENV = 'p' }
             steps {
-                def jiraIssueId = nais action: 'jiraDeploy'
-                slackStatus status: 'deploying', jiraIssueId: "${jiraIssueId}"
-                def jiraProdIssueId = nais action: 'jiraDeployProd', jiraIssueId: jiraIssueId
-                slackStatus status: 'deploying', jiraIssueId: "${jiraProdIssueId}"
-                try {
-                    timeout(time: 1, unit: 'HOURS') {
-                        input id: "deploy", message: "Waiting for remote Jenkins server to deploy the application..."
+                script {
+                    def jiraIssueId = nais action: 'jiraDeploy'
+                    slackStatus status: 'deploying', jiraIssueId: "${jiraIssueId}"
+                    def jiraProdIssueId = nais action: 'jiraDeployProd', jiraIssueId: jiraIssueId
+                    slackStatus status: 'deploying', jiraIssueId: "${jiraProdIssueId}"
+                    try {
+                        timeout(time: 1, unit: 'HOURS') {
+                            input id: "deploy", message: "Waiting for remote Jenkins server to deploy the application..."
+                        }
+                    } catch (Exception exception) {
+                        currentBuild.description = "Deploy failed, see " + currentBuild.description
+                        throw exception
                     }
-                } catch (Exception exception) {
-                    currentBuild.description = "Deploy failed, see " + currentBuild.description
-                    throw exception
                 }
             }
         }
