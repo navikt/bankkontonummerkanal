@@ -74,6 +74,7 @@ public class BankAccountNumberRoute implements Runnable {
     private final KafkaConsumer<String, ExternalAttachment> consumer;
     private final long retryInterval;
     private final int retryMaxRetries;
+    private final Runnable shutdownHook;
 
     private boolean running = true;
     private int retryCount = 0;
@@ -81,12 +82,13 @@ public class BankAccountNumberRoute implements Runnable {
 
     public BankAccountNumberRoute(Arbeidsgiver employer, BehandleArbeidsgiver handleEmployer,
                                   KafkaConsumer<String, ExternalAttachment> consumer,
-                                  long retryInterval, int retryMaxRetries) {
+                                  long retryInterval, int retryMaxRetries, Runnable shutdownHook) {
         this.handleEmployer = handleEmployer;
         this.consumer = consumer;
         this.structureValidator = new AARegOrganisationStructureValidator(employer);
         this.retryInterval = retryInterval;
         this.retryMaxRetries = retryMaxRetries;
+        this.shutdownHook = shutdownHook;
     }
 
     public void stop() {
@@ -95,19 +97,22 @@ public class BankAccountNumberRoute implements Runnable {
 
     @Override
     public void run() {
-        while (running) {
-            log.debug("Polling for new records");
-            for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
-                if (record.value().getArchiveReference().equals(lastArchiveReference)) {
-                    retryCount ++;
-                } else {
-                    retryCount = 0;
+        try {
+            while (running) {
+                log.debug("Polling for new records");
+                for (ConsumerRecord<String, ExternalAttachment> record : consumer.poll(1000)) {
+                    if (record.value().getArchiveReference().equals(lastArchiveReference)) {
+                        retryCount++;
+                    } else {
+                        retryCount = 0;
+                    }
+                    lastArchiveReference = record.value().getArchiveReference();
+                    handleMessage(record);
                 }
-                lastArchiveReference = record.value().getArchiveReference();
-                handleMessage(record);
             }
+        } finally {
+            shutdownHook.run();
         }
-        stop();
     }
 
     private LogstashMarker structureOf(OppdaterKontonummerRequest req) {

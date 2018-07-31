@@ -46,7 +46,7 @@ public class BankAccountNumberRouteTest {
 
         consumer.subscribe(Collections.singletonList(TOPIC));
 
-        route = spy(new BankAccountNumberRoute(employer, handleEmployer, consumer, 500, 5));
+        route = spy(new BankAccountNumberRoute(employer, handleEmployer, consumer, 500, 5, () -> {}));
         new Thread(route).start();
     }
 
@@ -131,5 +131,21 @@ public class BankAccountNumberRouteTest {
 
         verify(employer, never()).hentOrganisasjon(any());
         verify(handleEmployer, never()).oppdaterKontonummer(any());
+    }
+
+    @Test
+    public void testShutsDownOnMainLoopException() {
+        Runnable shutdownMock = mock(Runnable.class);
+        KafkaConsumer<String, ExternalAttachment> consumerMock = mock(KafkaConsumer.class);
+        when(consumerMock.poll(anyLong())).thenThrow(new RuntimeException("Failed to poll from Kafka"));
+        BankAccountNumberRoute route = new BankAccountNumberRoute(employer, handleEmployer, consumerMock, 500, 5, shutdownMock);
+
+        try {
+            route.run();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        verify(shutdownMock, times(1)).run();
     }
 }

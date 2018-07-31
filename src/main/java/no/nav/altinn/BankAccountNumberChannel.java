@@ -95,7 +95,7 @@ public class BankAccountNumberChannel {
 
         consumer.subscribe(Collections.singletonList(environmentConfig.bankaccountNumberChangedTopic));
         route = new BankAccountNumberRoute(employer, handleEmployer, consumer, environmentConfig.retryInterval,
-                environmentConfig.retryMaxRetries);
+                environmentConfig.retryMaxRetries, this::shutdown);
 
         Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown));
 
