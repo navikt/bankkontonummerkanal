@@ -8,19 +8,16 @@ pipeline {
 
     environment {
         APPLICATION_NAME = 'bankkontonummerkanal'
-        FASIT_ENV = 'q1'
-        ZONE = 'fss'
-        NAMESPACE = 'default'
-        COMMIT_HASH_SHORT = gitVars 'commitHashShort'
-        COMMIT_HASH = gitVars 'commitHash'
         APPLICATION_SERVICE = 'CMDB-240125'
         APPLICATION_COMPONENT = 'CMDB-190499'
+        FASIT_ENV = 'q1'
+        ZONE = 'fss'
     }
 
     stages {
         stage('setup') {
             steps {
-                ciSkip 'check'
+                init action: 'default'
                 script {
                     pom = readMavenPom file: 'pom.xml'
                     env.APPLICATION_VERSION = "${pom.version}"
@@ -29,10 +26,8 @@ pipeline {
                     } else {
                         env.DEPLOY_TO = 'production'
                     }
-                    changeLog = utils.gitVars(env.APPLICATION_NAME).changeLog.toString()
-                    githubStatus 'pending'
-                    slackStatus status: 'started', changeLog: "${changeLog}"
                 }
+                init action: 'updateStatus'
             }
         }
         stage('build') {
@@ -48,7 +43,7 @@ pipeline {
         }
         stage('docker build') {
             steps {
-                dockerUtils 'createPushImage'
+                dockerUtils action: 'createPushImage'
             }
         }
         stage('validate & upload nais.yaml to nexus m2internal') {
@@ -60,65 +55,28 @@ pipeline {
 
         stage('deploy to preprod') {
             steps {
-                deployApplication()
+                deploy action: 'jiraPreprod'
             }
         }
         stage('deploy to production') {
             when { environment name: 'DEPLOY_TO', value: 'production' }
-            environment { FASIT_ENV = 'p' }
             steps {
-                script {
-                    def jiraIssueId = nais action: 'jiraDeploy'
-                    slackStatus status: 'deploying', jiraIssueId: "${jiraIssueId}"
-                    def jiraProdIssueId = nais action: 'jiraDeployProd', jiraIssueId: jiraIssueId
-                    slackStatus status: 'deploying', jiraIssueId: "${jiraProdIssueId}"
-                    try {
-                        timeout(time: 1, unit: 'HOURS') {
-                            input id: "deploy", message: "Waiting for remote Jenkins server to deploy the application..."
-                        }
-                    } catch (Exception exception) {
-                        currentBuild.description = "Deploy failed, see " + currentBuild.description
-                        throw exception
-                    }
-                }
+                deploy action: 'jiraProd'
             }
         }
-
     }
 
     post {
         always {
-            ciSkip 'postProcess'
-            dockerUtils 'pruneBuilds'
-            script {
-                if (currentBuild.result == 'ABORTED') {
-                    slackStatus status: 'aborted'
-                }
-            }
+            postProcess action: 'always'
             junit 'target/surefire-reports/*.xml'
             archive 'target/bankkontonummer-kanal-*.jar'
-            deleteDir()
         }
         success {
-            githubStatus 'success'
-            slackStatus status: 'success'
+            postProcess action: 'success'
         }
         failure {
-            githubStatus 'failure'
-            slackStatus status: 'failure'
+            postProcess action: 'failure'
         }
-    }
-}
-
-void deployApplication() {
-    def jiraIssueId = nais action: 'jiraDeploy'
-    slackStatus status: 'deploying', jiraIssueId: "${jiraIssueId}"
-    try {
-        timeout(time: 1, unit: 'HOURS') {
-            input id: "deploy", message: "Waiting for remote Jenkins server to deploy the application..."
-        }
-    } catch (Exception exception) {
-        currentBuild.description = "Deploy failed, see " + currentBuild.description
-        throw exception
     }
 }
