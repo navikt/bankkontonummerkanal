@@ -10,7 +10,7 @@ pipeline {
         APPLICATION_NAME = 'bankkontonummerkanal'
         APPLICATION_SERVICE = 'CMDB-240125'
         APPLICATION_COMPONENT = 'CMDB-190499'
-        FASIT_ENV = 'q1'
+        FASIT_ENVIRONMENT = 'q1'
         ZONE = 'fss'
         DOCKER_SLUG = 'integrasjon'
     }
