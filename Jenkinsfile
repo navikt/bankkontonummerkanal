@@ -71,7 +71,7 @@ pipeline {
         always {
             postProcess action: 'always'
             junit 'target/surefire-reports/*.xml'
-            archive 'target/bankkontonummer-kanal-*.jar'
+            archiveArtifacts artifacts: 'target/bankkontonummer-kanal-*.jar', allowEmptyArchive: true
         }
         success {
             postProcess action: 'success'
