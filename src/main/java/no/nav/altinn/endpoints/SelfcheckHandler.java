@@ -19,7 +19,7 @@ public class SelfcheckHandler extends AbstractHandler {
         if ("/is_alive".equals(target)) {
             handleIsAlive(response);
             baseRequest.setHandled(true);
-            log.info("Eg er i live, fra demo flokk");
+            log.info("Eg er i live, fra demo Tripple DES");
         }
 
         if ("/is_ready".equals(target)) {
