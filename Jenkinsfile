@@ -53,16 +53,19 @@ pipeline {
                 nais action: 'upload'
             }
         }
-
-        stage('deploy to preprod') {
-            steps {
-                deployApp action: 'jiraPreprod'
-            }
-        }
-        stage('deploy to production') {
-            when { environment name: 'DEPLOY_TO', value: 'production' }
-            steps {
-                deployApp action: 'jiraProd'
+        stage('deploy') {
+            parallel {
+                stage('deploy to preprod') {
+                    steps {
+                        deployApp action: 'jiraPreprod'
+                    }
+                }
+                stage('deploy to production') {
+                    when { environment name: 'DEPLOY_TO', value: 'production' }
+                    steps {
+                        deployApp action: 'jiraProd'
+                    }
+                }
             }
         }
     }
