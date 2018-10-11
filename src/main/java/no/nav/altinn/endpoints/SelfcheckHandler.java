@@ -19,7 +19,6 @@ public class SelfcheckHandler extends AbstractHandler {
         if ("/is_alive".equals(target)) {
             handleIsAlive(response);
             baseRequest.setHandled(true);
-            log.info("Trippel DES");
         }
 
         if ("/is_ready".equals(target)) {
