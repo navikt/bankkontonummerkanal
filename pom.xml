@@ -14,7 +14,7 @@
         <jetty.version>9.2.22.v20170606</jetty.version>
         <prometheus.version>0.4.0</prometheus.version>
         <kafka.version>1.0.0</kafka.version>
-        <cxf.version>3.2.1</cxf.version>
+        <cxf.version>3.2.10</cxf.version>
         <logback.version>1.2.3</logback.version>
         <confluent.version>4.0.0</confluent.version>
         <maven.failsafe.plugin.version>2.18.1</maven.failsafe.plugin.version>
