@@ -24,7 +24,7 @@
         <altinnkanal.schemas.version>1.0.39</altinnkanal.schemas.version>
         <embedded.kafka.version>0.6.2</embedded.kafka.version>
         <mocito.version>2.16.0</mocito.version>
-        <logstash.logback.encoder.version>5.0</logstash.logback.encoder.version>
+        <logstash.logback.encoder.version>6.2</logstash.logback.encoder.version>
     </properties>
 
     <repositories>
