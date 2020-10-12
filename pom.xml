@@ -18,7 +18,7 @@
         <logback.version>1.2.3</logback.version>
         <confluent.version>4.0.0</confluent.version>
         <maven.failsafe.plugin.version>2.18.1</maven.failsafe.plugin.version>
-        <junit.version>4.12</junit.version>
+        <junit.version>4.13.1</junit.version>
         <nav.arbeidsgiver.version>2.0.0</nav.arbeidsgiver.version>
         <nav.behandleArbeidsgiver.version>1.0.0</nav.behandleArbeidsgiver.version>
         <altinnkanal.schemas.version>1.0.39</altinnkanal.schemas.version>
